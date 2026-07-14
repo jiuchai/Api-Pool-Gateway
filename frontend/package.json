@@ -1,0 +1,28 @@
+{
+  "name": "pool-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "axios": "^1.6.2",
+    "chart.js": "^4.5.1",
+    "codemirror": "^6.0.2",
+    "element-plus": "^2.14.3",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.0",
+    "vue-chartjs": "^5.3.4",
+    "vue-i18n": "^9.14.4",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.4.0"
+  }
+}
