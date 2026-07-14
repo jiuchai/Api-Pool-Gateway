@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: pool-gateway
+    restart: unless-stopped
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - PORT
+      - JWT_SECRET
+      - ADMIN_USERNAME
+      - ADMIN_EMAIL
+      - ADMIN_PASSWORD
+    volumes:
+      - ./data:/app/data

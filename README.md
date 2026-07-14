@@ -92,19 +92,13 @@ The application will be available at `http://localhost:3002`.
 ### Docker
 
 ```bash
-# Build the image
-docker build -t api-pool-gateway .
-
-# Run the container
-docker run -d -p 3002:3002 \
-  -e JWT_SECRET=your-secret-key \
-  -e ADMIN_PASSWORD=your-admin-password \
-  -v $(pwd)/data:/app/data \
-  --name pool-gateway \
-  api-pool-gateway
+# Edit .env with your settings, then:
+docker-compose up -d --build
 
 # Open http://localhost:3002
 ```
+
+All environment variables are read from the `.env` file automatically.
 
 ### Environment Variables
 
@@ -234,19 +228,13 @@ npm start
 ### Docker 部署
 
 ```bash
-# 构建镜像
-docker build -t api-pool-gateway .
-
-# 运行容器
-docker run -d -p 3002:3002 \
-  -e JWT_SECRET=your-secret-key \
-  -e ADMIN_PASSWORD=your-admin-password \
-  -v $(pwd)/data:/app/data \
-  --name pool-gateway \
-  api-pool-gateway
+# 编辑 .env 配置后，执行：
+docker-compose up -d --build
 
 # 打开 http://localhost:3002
 ```
+
+所有环境变量自动从 `.env` 文件读取。
 
 ### 环境变量
 
