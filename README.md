@@ -1,5 +1,7 @@
 # API Pool Gateway
 
+[English](README.md) | [中文](README-zh_CN.md)
+
 A dynamic API aggregation gateway platform. Register multiple third-party API services (compression, data conversion, image recognition, etc.) into a unified gateway and call them through a single API Key — no need to know the underlying service endpoints. Services can be added or removed without restarting the server.
 
 ### Features
