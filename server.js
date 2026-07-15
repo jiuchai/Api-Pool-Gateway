@@ -62,6 +62,17 @@ async function init() {
   }
   // 种子数据：默认套餐
   await tierService.seedIfEmpty();
+  // 种子数据：默认服务
+  const serviceCount = await db.services.count({});
+  if (serviceCount === 0 && config.defaultServices) {
+    for (const svc of config.defaultServices) {
+      const exists = await db.services.findOne({ slug: svc.slug });
+      if (!exists) {
+        await db.services.insert({ ...svc, enabled: true, rateLimit: { perMinute: 30 }, createdAt: Date.now(), updatedAt: Date.now() });
+      }
+    }
+    console.log(`[系统] 已导入 ${config.defaultServices.length} 个默认服务`);
+  }
   // 清理限流
   setInterval(async () => {
     try { await db.rateLimit.remove({ timestamp: { $lt: Date.now() - 86400000 } }, { multi: true }); } catch {}
