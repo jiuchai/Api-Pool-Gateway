@@ -2,24 +2,27 @@
  * 计费服务模块（按月订阅制，无按次计费）
  */
 const { db } = require('../database');
-const config = require('../config');
+const tierService = require('./tierService');
 const { getCurrentMonth, calculateCost, formatDateTime } = require('../utils/helpers');
 
 const billingService = {
-  getUserTier(user) {
-    return config.billing.tiers[user.tierIndex] || config.billing.tiers[0];
+  async getUserTier(user) {
+    const tiers = await tierService._getRawTiers();
+    return tiers[user.tierIndex] || tiers[0];
   },
 
   async getCurrentUsage(userId) {
     const month = getCurrentMonth();
     let record = await db.billingRecords.findOne({ userId, month });
+    const tiers = await tierService._getRawTiers();
+    const defaultTierIndex = 0;
     if (!record) {
       record = {
-        userId, month, callCount: 0, tierIndex: config.billing.defaultTierIndex, createdAt: Date.now(),
+        userId, month, callCount: 0, tierIndex: defaultTierIndex, createdAt: Date.now(),
       };
     }
     const user = await db.users.findOne({ _id: userId });
-    const tier = config.billing.tiers[record.tierIndex] || config.billing.tiers[0];
+    const tier = tiers[record.tierIndex] || tiers[0];
     return {
       month: record.month, callCount: record.callCount,
       cost: calculateCost(record.callCount, tier),
@@ -43,11 +46,12 @@ const billingService = {
   async generateMonthlyBill(month) {
     const monthStr = month || getCurrentMonth();
     const records = await db.billingRecords.find({ month: monthStr });
+    const tiers = await tierService._getRawTiers();
     const bills = [];
     for (const record of records) {
       const user = await db.users.findOne({ _id: record.userId });
       if (!user) continue;
-      const tier = config.billing.tiers[record.tierIndex] || config.billing.tiers[0];
+      const tier = tiers[record.tierIndex] || tiers[0];
       const totalCost = tier.monthlyFee;
       const existing = await db.bills.findOne({ userId: record.userId, month: monthStr });
       if (existing) {
@@ -62,7 +66,8 @@ const billingService = {
   },
 
   async changeUserTier(userId, tierIndex) {
-    if (tierIndex < 0 || tierIndex >= config.billing.tiers.length) throw { status: 400, message: '无效的计费档次' };
+    const tiers = await tierService._getRawTiers();
+    if (tierIndex < 0 || tierIndex >= tiers.length) throw { status: 400, message: '无效的计费档次' };
     const user = await db.users.findOne({ _id: userId });
     if (!user) throw { status: 404, message: '用户不存在' };
     await db.users.update({ _id: userId }, { $set: { tierIndex, updatedAt: Date.now() } });
@@ -70,13 +75,14 @@ const billingService = {
     return { message: '套餐已更新', tierIndex };
   },
 
-  getBillingConfig() {
-    return { tiers: config.billing.tiers, defaultTierIndex: config.billing.defaultTierIndex };
+  async getBillingConfig() {
+    return await tierService.getTiers();
   },
 
   async getSystemBillingStats(month) {
     const m = month || getCurrentMonth();
     const records = await db.billingRecords.find({ month: m });
+    const tiers = await tierService._getRawTiers();
     let totalCalls = 0;
     let totalRevenue = 0;
     let activeUsers = 0;
@@ -85,7 +91,7 @@ const billingService = {
       if (user && !user.disabled) {
         activeUsers++;
         totalCalls += record.callCount;
-        const tier = config.billing.tiers[record.tierIndex] || config.billing.tiers[0];
+        const tier = tiers[record.tierIndex] || tiers[0];
         totalRevenue += tier.monthlyFee;
       }
     }
@@ -97,10 +103,11 @@ const billingService = {
     const skip = (page - 1) * pageSize;
     const records = await db.billingRecords.find({ month: monthStr }).sort({ callCount: -1 }).skip(skip).limit(pageSize);
     const total = await db.billingRecords.count({ month: monthStr });
+    const tiers = await tierService._getRawTiers();
     const result = [];
     for (const record of records) {
       const user = await db.users.findOne({ _id: record.userId });
-      const tier = config.billing.tiers[record.tierIndex] || config.billing.tiers[0];
+      const tier = tiers[record.tierIndex] || tiers[0];
       result.push({ userId: record.userId, username: user ? user.username : '未知', disabled: user ? user.disabled : false, month: record.month, callCount: record.callCount, cost: tier.monthlyFee, tierName: tier.name });
     }
     return { records: result, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };

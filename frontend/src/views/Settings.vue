@@ -4,7 +4,7 @@
     <div class="card">
       <div class="ch" style="display:flex;justify-content:space-between"><h3>密钥列表</h3><button class="btn btn-primary btn-sm" @click="showCreate=true">+ 创建</button></div>
       <div class="cb">
-        <table v-if="keys.length"><thead><tr><th>名称</th><th>密钥</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="k in keys" :key="k.id"><td>{{ k.name }}</td><td><code>{{ k.key }}</code> <button class="btn btn-sm btn-outline" @click="copy(k.key)">复制</button></td><td><span :class="['badge',k.disabled?'bd':'bs']">{{ k.disabled?'已禁用':'正常' }}</span></td><td class="acts"><button v-if="!k.disabled" class="btn btn-sm btn-outline" @click="disable(k.id)">禁用</button><button v-else class="btn btn-sm btn-outline" @click="enable(k.id)">启用</button><button class="btn btn-sm btn-warning" @click="regen(k.id)">重新生成</button></td></tr></tbody></table>
+        <table v-if="keys.length"><thead><tr><th>名称</th><th>密钥</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="k in keys" :key="k.id"><td>{{ k.name }}</td><td><code>{{ k.key }}</code> <button class="btn btn-sm btn-outline" @click="copy(k.key)">复制</button></td><td><span :class="['badge',k.disabled?'bd':'bs']">{{ k.disabled?'已禁用':'正常' }}</span></td><td class="acts"><button v-if="!k.disabled" class="btn btn-sm btn-outline" @click="disable(k.id)">禁用</button><button v-else class="btn btn-sm btn-outline" @click="enable(k.id)">启用</button><button class="btn btn-sm btn-warning" @click="regen(k.id)">重新生成</button><button class="btn btn-sm btn-danger" @click="remove(k.id)">删除</button></td></tr></tbody></table>
         <div v-else style="text-align:center;padding:30px;color:#94a3b8">暂无密钥</div>
       </div>
     </div>
@@ -17,13 +17,14 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted } from 'vue'; import { get, post, put } from '@/api/client'; import { useToastStore } from '@/stores/toast'
+import { ref, onMounted } from 'vue'; import { get, post, put, del } from '@/api/client'; import { useToastStore } from '@/stores/toast'
 const toast = useToastStore(); const keys = ref([]); const showCreate = ref(false); const newName = ref(''); const newKey = ref(null)
 async function load() { try { const r = await get('/api/keys'); keys.value = r.data.data } catch(e) { toast.error(e.message) } }
 async function create() { try { const r = await post('/api/keys',{name:newName.value}); newKey.value = r.data.data; load(); toast.success('已创建') } catch(e) { toast.error(e.message) } }
 async function disable(id) { try { await put(`/api/keys/${id}/disable`); toast.success('已禁用'); load() } catch(e) { toast.error(e.message) } }
 async function enable(id) { try { await put(`/api/keys/${id}/enable`); toast.success('已启用'); load() } catch(e) { toast.error(e.message) } }
 async function regen(id) { try { const r = await post(`/api/keys/${id}/regenerate`); newKey.value = r.data.data; showCreate.value = true; load(); toast.success('已重新生成') } catch(e) { toast.error(e.message) } }
+async function remove(id) { if (!confirm('确定删除该密钥？删除后不可恢复。')) return; try { await del(`/api/keys/${id}`); toast.success('已删除'); load() } catch(e) { toast.error(e.message) } }
 function copy(t) { navigator.clipboard.writeText(t).then(()=>toast.success('已复制')) }
 onMounted(load)
 </script>

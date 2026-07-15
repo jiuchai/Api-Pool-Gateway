@@ -25,5 +25,9 @@ router.post('/:id/regenerate', async (req, res) => {
   try { const key = await userService.regenerateApiKey(req.user._id, req.params.id); res.json({ success: true, data: key }); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
+router.delete('/:id', async (req, res) => {
+  try { const r = await userService.deleteApiKey(req.user._id, req.params.id); res.json({ success: true, data: r }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 module.exports = router;

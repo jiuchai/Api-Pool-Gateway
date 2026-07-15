@@ -3,6 +3,7 @@
  * 根据服务配置动态转发API请求
  */
 const axios = require('axios');
+const FormData = require('form-data');
 const config = require('../config');
 const { validateParams } = require('../utils/helpers');
 
@@ -19,7 +20,7 @@ const gatewayService = {
       name: s.name,
       description: s.description,
       category: s.category,
-      method: s.method,
+      method: 'POST',
       params: s.params || [],
       endpoint: `/api/gateway/${s.slug}`,
       rateLimit: s.rateLimit,
@@ -34,43 +35,72 @@ const gatewayService = {
     const service = await require('../database').db.services.findOne({ slug, enabled: true });
     if (!service) throw { status: 404, message: `服务 "${slug}" 不存在或已禁用` };
 
-    // 参数验证
-    if (service.params && service.params.length) {
+    const hasFiles = params && Object.values(params).some(v => {
+      if (Array.isArray(v)) return v.some(item => item && item.path && item.originalname);
+      return v && v.path && v.originalname;
+    });
+
+    if (!hasFiles && service.params && service.params.length) {
       const { errors } = validateParams(params, service.params);
       if (errors) throw { status: 400, message: '参数验证失败', details: errors };
     }
 
-    // 构建目标URL：支持模板替换 {{param}}
     let targetUrl = service.targetUrl;
     if (params) {
       for (const [key, val] of Object.entries(params)) {
-        targetUrl = targetUrl.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), encodeURIComponent(val));
+        if (val && typeof val === 'object' && val.path) continue;
+        targetUrl = targetUrl.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), encodeURIComponent(String(val)));
       }
     }
 
-    // 构建请求体：支持 bodyTemplate 模板
     let requestBody = params || {};
-    if (service.bodyTemplate && typeof service.bodyTemplate === 'string') {
+    let useFormData = false;
+
+    if (hasFiles) {
+      useFormData = true;
+      const form = new FormData();
+      for (const [key, val] of Object.entries(params)) {
+        if (Array.isArray(val)) {
+          val.forEach(item => {
+            if (item && typeof item === 'object' && item.path) {
+              form.append(key, require('fs').createReadStream(item.path), { filename: item.originalname });
+            } else {
+              form.append(key, String(item));
+            }
+          });
+        } else if (val && typeof val === 'object' && val.path) {
+          form.append(key, require('fs').createReadStream(val.path), { filename: val.originalname });
+        } else if (service.bodyTemplate) {
+          let valStr = String(val);
+          if (service.bodyTemplate.includes(`{{${key}}}`)) {
+            const escaped = valStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            valStr = escaped;
+          }
+          form.append(key, valStr);
+        } else {
+          form.append(key, String(val));
+        }
+      }
+      requestBody = form;
+    } else if (service.bodyTemplate && typeof service.bodyTemplate === 'string') {
       let bodyStr = service.bodyTemplate;
       if (params) {
         for (const [key, val] of Object.entries(params)) {
-          // 在模板中替换 {{param}}，字符串值加引号
           const escaped = String(val).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
           bodyStr = bodyStr.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), escaped);
         }
       }
-      // 尝试解析为JSON对象
       try {
         requestBody = JSON.parse(bodyStr);
       } catch {
-        // 保持为字符串（可能是纯文本模板）
         requestBody = bodyStr;
       }
     }
 
-    // 合并请求头
     const headers = { ...service.forwardHeaders, 'User-Agent': 'Pool-Gateway/1.0' };
-    if (typeof requestBody === 'object') {
+    if (useFormData) {
+      Object.assign(headers, requestBody.getHeaders());
+    } else if (typeof requestBody === 'object') {
       headers['Content-Type'] = 'application/json';
     }
     delete headers['x-api-key'];
@@ -90,7 +120,6 @@ const gatewayService = {
         maxRedirects: 5,
       });
 
-      // 解析响应
       let body = response.data;
       if (typeof body === 'string' && body.trim()) {
         try { body = JSON.parse(body); } catch { /* keep as string */ }
@@ -147,6 +176,19 @@ const gatewayService = {
     const service = await require('../database').db.services.findOne({ slug });
     if (!service) throw { status: 404, message: '服务不存在' };
     return service;
+  },
+
+  async getTools() {
+    const services = await require('../database').db.services.find({ enabled: true }).sort({ createdAt: -1 });
+    return services.map(s => ({
+      name: s.name,
+      slug: s.slug,
+      description: s.description,
+      category: s.category || '未分类',
+      endpoint: `/api/gateway/${s.slug}`,
+      method: 'POST',
+      detail_url: `/api/gateway/tools/${s.slug}`,
+    }));
   },
 };
 

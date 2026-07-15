@@ -3,7 +3,7 @@
  */
 const crypto = require('crypto');
 const { db } = require('../database');
-const config = require('../config');
+const tierService = require('./tierService');
 const billingService = require('./billingService');
 const { formatDateTime } = require('../utils/helpers');
 
@@ -45,7 +45,8 @@ const redeemService = {
     await db.redeemCodes.update({ _id: entry._id }, { $inc: { usedCount: 1 } });
     await this.logRedeem(userId, entry._id, entry.code, true, null);
 
-    const tier = config.billing.tiers[entry.tierIndex];
+    const tiers = await tierService._getRawTiers();
+    const tier = tiers[entry.tierIndex];
     return { success: true, message: `兑换成功！已激活「${tier?.name || entry.tierIndex}」套餐`, type: 'tier', tierName: tier?.name };
   },
 
@@ -61,8 +62,9 @@ const redeemService = {
     else if (status === 'disabled') query.disabled = true;
     const total = await db.redeemCodes.count(query);
     const codes = await db.redeemCodes.find(query).sort({ createdAt: -1 }).skip((page - 1) * pageSize).limit(pageSize);
+    const tiers = await tierService._getRawTiers();
     return {
-      codes: codes.map(c => ({ id: c._id, code: c.code, type: c.type, tierIndex: c.tierIndex, tierName: c.type === 'tier' ? (config.billing.tiers[c.tierIndex]?.name || '') : '', maxUses: c.maxUses, usedCount: c.usedCount, expiresAt: c.expiresAt ? formatDateTime(c.expiresAt) : null, disabled: c.disabled, createdAt: formatDateTime(c.createdAt) })),
+      codes: codes.map(c => ({ id: c._id, code: c.code, type: c.type, tierIndex: c.tierIndex, tierName: c.type === 'tier' ? (tiers[c.tierIndex]?.name || '') : '', maxUses: c.maxUses, usedCount: c.usedCount, expiresAt: c.expiresAt ? formatDateTime(c.expiresAt) : null, disabled: c.disabled, createdAt: formatDateTime(c.createdAt) })),
       pagination: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
     };
   },

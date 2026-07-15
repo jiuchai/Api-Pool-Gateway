@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 
 const config = require('./config');
 const { db, ensureIndexes } = require('./database');
+const tierService = require('./services/tierService');
 const { auditLog } = require('./middleware/logger');
 
 const app = express();
@@ -52,12 +53,15 @@ app.use((err, req, res, next) => {
 // 初始化
 async function init() {
   await ensureIndexes();
+  // 种子数据：管理员
   const admin = await db.users.findOne({ role: 'admin' });
   if (!admin) {
     const hash = await bcrypt.hash(config.admin.password, config.bcryptSaltRounds);
     await db.users.insert({ username: config.admin.username, email: config.admin.email, password: hash, role: 'admin', disabled: false, createdAt: Date.now(), updatedAt: Date.now() });
     console.log('[系统] 管理员账号已创建');
   }
+  // 种子数据：默认套餐
+  await tierService.seedIfEmpty();
   // 清理限流
   setInterval(async () => {
     try { await db.rateLimit.remove({ timestamp: { $lt: Date.now() - 86400000 } }, { multi: true }); } catch {}

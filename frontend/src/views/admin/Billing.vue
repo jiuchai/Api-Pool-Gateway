@@ -14,18 +14,22 @@
     <div class="card" style="margin-bottom:24px">
       <div class="card-header flex-between">
         <h3>套餐配置</h3>
-        <el-button type="primary" size="small" @click="saveTiers" :loading="savingTiers">保存配置</el-button>
+        <div style="display:flex;gap:8px">
+          <el-button size="small" @click="addTier">+ 添加套餐</el-button>
+          <el-button type="primary" size="small" @click="saveTiers" :loading="savingTiers">保存全部</el-button>
+        </div>
       </div>
       <div class="card-body">
         <table>
-          <thead><tr><th>名称</th><th>速率 (次/秒)</th><th>日上限</th><th>月上限</th><th>月费 (¥)</th></tr></thead>
+          <thead><tr><th style="width:100px">名称</th><th>速率 (次/秒)</th><th>日上限</th><th>月上限</th><th>月费 (¥)</th><th style="width:60px">操作</th></tr></thead>
           <tbody>
-            <tr v-for="(t, i) in tierEdit" :key="i">
+            <tr v-for="(t, i) in tierEdit" :key="t._id || i">
               <td><el-input v-model="t.name" size="small" style="width:100px" /></td>
               <td><el-input-number v-model="t.ratePerSecond" size="small" :min="1" :max="1000" /></td>
               <td><el-input-number v-model="t.maxCallsPerDay" size="small" :min="-1" :max="99999999" /><span v-if="t.maxCallsPerDay === -1" class="inf">不限</span></td>
               <td><el-input-number v-model="t.maxCalls" size="small" :min="-1" :max="99999999" /><span v-if="t.maxCalls === -1" class="inf">不限</span></td>
               <td><el-input-number v-model="t.monthlyFee" size="small" :min="0" :max="99999" :precision="0" /></td>
+              <td><el-button size="small" type="danger" :icon="Delete" circle @click="removeTier(i)" :disabled="tierEdit.length <= 1" /></td>
             </tr>
           </tbody>
         </table>
@@ -50,7 +54,7 @@
               <td><span :class="['badge', u.disabled ? 'bd' : 'bs']">{{ u.disabled ? '已禁用' : '正常' }}</span></td>
               <td>
                 <el-select v-model="tierChanges[u.userId]" size="small" style="width:110px" placeholder="切换套餐" @change="changeTier(u.userId)">
-                  <el-option v-for="(t, i) in tierEdit" :key="i" :label="t.name" :value="i" />
+                  <el-option v-for="(t, i) in tierEdit" :key="t._id || i" :label="t.name" :value="i" />
                 </el-select>
               </td>
             </tr>
@@ -65,7 +69,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { get, post, put } from '@/api/client'
+import { Delete } from '@element-plus/icons-vue'
+import { get, post, put, del } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
 import Pagination from '@/components/Pagination.vue'
 
@@ -80,22 +85,44 @@ const tierChanges = reactive({})
 async function loadData(p = 1) {
   try {
     page.value = p
-    const [statsRes, configRes] = await Promise.all([
+    const [statsRes, tiersRes] = await Promise.all([
       get('/api/admin/billing/stats', { page: p, pageSize: ps }),
-      get('/api/admin/config')
+      get('/api/admin/tiers')
     ])
     summary.value = statsRes.data.data.summary
     users.value = statsRes.data.data.users.records
     total.value = statsRes.data.data.users.total
-    if (configRes.data.data.billing?.tiers) tierEdit.value = configRes.data.data.billing.tiers.map(t => ({ ...t }))
+    tierEdit.value = tiersRes.data.data.map(t => ({ ...t }))
   } catch (e) { toast.error(e.message) }
+}
+
+function addTier() {
+  tierEdit.value.push({ name: '新套餐', ratePerSecond: 10, maxCallsPerDay: 100, maxCalls: 1000, monthlyFee: 0 })
+}
+
+async function removeTier(index) {
+  const tier = tierEdit.value[index]
+  if (tier._id) {
+    try {
+      await del(`/api/admin/tiers/${tier._id}`)
+      toast.success('已删除')
+    } catch (e) { toast.error(e.message); return }
+  }
+  tierEdit.value.splice(index, 1)
 }
 
 async function saveTiers() {
   savingTiers.value = true
   try {
-    await put('/api/admin/config/billing', { tiers: tierEdit.value })
+    const data = tierEdit.value.map((t, i) => ({
+      name: t.name, ratePerSecond: Number(t.ratePerSecond) || 10,
+      maxCallsPerDay: t.maxCallsPerDay !== undefined ? Number(t.maxCallsPerDay) : -1,
+      maxCalls: t.maxCalls !== undefined ? Number(t.maxCalls) : -1,
+      monthlyFee: Number(t.monthlyFee) || 0,
+    }))
+    await put('/api/admin/tiers/batch/save', { tiers: data })
     toast.success('套餐配置已保存')
+    await loadData(page.value)
   } catch (e) { toast.error(e.message) }
   finally { savingTiers.value = false }
 }

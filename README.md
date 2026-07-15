@@ -30,56 +30,38 @@ A dynamic API aggregation gateway platform. Register multiple third-party API se
 | Frontend | Vue 3 + Vite + Element Plus + Pinia                 |
 | Auth     | JWT (Bearer) + API Key                              |
 
-### Quick Start
+### Quick Start (Docker)
 
-#### Prerequisites
-
-- Node.js >= 18
-- npm >= 9
-
-#### Installation
+The image comes with pre-built frontend in `public/` — no build step needed.
 
 ```bash
-# Clone the repository
 git clone https://github.com/jiuchai/Api-Pool-Gateway.git
 cd Api-Pool-Gateway
+cp .env.example .env          # Edit .env with your settings
 
-# Install backend dependencies
-npm install
-
-# Install frontend dependencies
-cd frontend && npm install && cd ..
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your own settings
+docker-compose up -d
+# Open http://localhost:3002
 ```
 
-#### Running in Development
+All environment variables are read from the `.env` file automatically.
+
+#### Rebuilding Frontend
+
+If you modified the frontend and want to rebuild it inside Docker:
 
 ```bash
-# Run both backend and frontend concurrently
+BUILD_FRONTEND=true docker-compose up -d --build
+```
+
+#### Development (Hot-Reload)
+
+```bash
+# Prerequisites: Node.js >= 18, npm >= 9
+npm install && cd frontend && npm install && cd ..
 npm run dev:all
-
-# Or run them separately:
-npm run dev        # Backend on http://localhost:3002
-npm run frontend   # Frontend on http://localhost:5174
+# Backend → http://localhost:3002
+# Frontend dev server → http://localhost:5174
 ```
-
-#### Running in Production
-
-```bash
-# Build the frontend
-cd frontend && npm run build && cd ..
-
-# Copy built frontend to public directory
-cp -r frontend/dist/* public/
-
-# Start the server
-npm start
-```
-
-The application will be available at `http://localhost:3002`.
 
 #### Default Admin Account
 
@@ -90,17 +72,6 @@ The application will be available at `http://localhost:3002`.
 | Password | Admin@123456    |
 
 > Change these values in `.env` before deploying to production.
-
-### Docker
-
-```bash
-# Edit .env with your settings, then:
-docker-compose up -d --build
-
-# Open http://localhost:3002
-```
-
-All environment variables are read from the `.env` file automatically.
 
 ### Environment Variables
 
@@ -138,8 +109,25 @@ All environment variables are read from the `.env` file automatically.
 │   │   └── api/        # Axios client
 │   └── package.json
 ├── image/              # Screenshots
+├── skills.md           # AI Agent skill documentation
 └── data/               # nedb database files (auto-created)
 ```
+
+### AI Agent Integration
+
+The gateway provides tools for AI agents to discover and call registered services programmatically.
+
+#### Tools API
+
+| Endpoint | Method | Description |
+| -------- | ------ | ----------- |
+| `/api/gateway/tools` | GET | Get all available tools (no auth required) |
+| `/api/gateway/:slug/info` | GET | Get detailed info for a specific tool |
+| `/api/gateway/:slug` | POST | Call a tool (requires API Key) |
+
+#### Skills Definition
+
+See [skills.md](skills.md) for the complete AI agent skill documentation, including usage workflow, authentication, and API schemas.
 
 ### License
 

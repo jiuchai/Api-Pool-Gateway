@@ -1,25 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const billingService = require('../services/billingService');
-const config = require('../config');
+const tierService = require('../services/tierService');
 const { jwtAuth } = require('../middleware/auth');
 const { db } = require('../database');
 
 router.use(jwtAuth);
 
-router.get('/tiers', (req, res) => {
+router.get('/tiers', async (req, res) => {
   try {
-    const tiers = config.billing.tiers.map((t, i) => ({ index: i, name: t.name, ratePerSecond: t.ratePerSecond || 10, maxCallsPerDay: t.maxCallsPerDay, maxCalls: t.maxCalls, monthlyFee: t.monthlyFee }));
-    res.json({ success: true, data: { tiers, currentTierIndex: req.user.tierIndex } });
+    const tiers = await tierService.getTiers();
+    res.json({ success: true, data: { tiers: tiers.map((t, i) => ({ index: i, name: t.name, ratePerSecond: t.ratePerSecond || 10, maxCallsPerDay: t.maxCallsPerDay, maxCalls: t.maxCalls, monthlyFee: t.monthlyFee })), currentTierIndex: req.user.tierIndex } });
   } catch (err) { res.status(500).json({ error: '获取套餐失败' }); }
 });
 
 router.put('/tier', async (req, res) => {
   try {
     const { tierIndex } = req.body;
-    if (tierIndex === undefined || tierIndex < 0 || tierIndex >= config.billing.tiers.length) return res.status(400).json({ error: '无效的套餐' });
+    const tiers = await tierService._getRawTiers();
+    if (tierIndex === undefined || tierIndex < 0 || tierIndex >= tiers.length) return res.status(400).json({ error: '无效的套餐' });
     const result = await billingService.changeUserTier(req.user._id, tierIndex);
-    const tier = config.billing.tiers[tierIndex];
+    const tier = tiers[tierIndex];
     if (tier.ratePerSecond !== undefined) {
       await db.users.update({ _id: req.user._id }, { $set: { 'rateLimit.perSecond': tier.ratePerSecond, updatedAt: Date.now() } });
     }

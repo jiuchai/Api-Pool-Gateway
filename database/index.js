@@ -7,6 +7,7 @@ const db = {
   users: Datastore.create({ filename: path.join(dbPath, 'users.db'), autoload: true }),
   apiKeys: Datastore.create({ filename: path.join(dbPath, 'apikeys.db'), autoload: true }),
   services: Datastore.create({ filename: path.join(dbPath, 'services.db'), autoload: true }),
+  tiers: Datastore.create({ filename: path.join(dbPath, 'tiers.db'), autoload: true }),
   callLogs: Datastore.create({ filename: path.join(dbPath, 'call_logs.db'), autoload: true }),
   rateLimit: Datastore.create({ filename: path.join(dbPath, 'rate_limit.db'), autoload: true }),
   auditLogs: Datastore.create({ filename: path.join(dbPath, 'audit_logs.db'), autoload: true }),

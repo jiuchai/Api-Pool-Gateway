@@ -23,7 +23,7 @@
               <div class="ch"><h3>{{ s.name }} <span class="scat">{{ s.category }}</span></h3></div>
               <div class="cb">
                 <p style="margin-bottom:16px;color:#64748b">{{ s.description }}</p>
-                <div class="ep"><span class="m">{{ s.method }}</span><code>{{ '/api/gateway/' + s.slug }}</code></div>
+                <div class="ep"><span class="m">POST</span><code>{{ '/api/gateway/' + s.slug }}</code></div>
                 <div v-if="s.params&&s.params.length" class="mt-2">
                   <h4>参数</h4>
                   <table><thead><tr><th>名称</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr v-for="p in s.params" :key="p.name"><td><code>{{ p.name }}</code></td><td>{{ p.type || 'string' }}</td><td>{{ p.required ? '是' : '否' }}</td><td>{{ p.description }}</td></tr></tbody></table>

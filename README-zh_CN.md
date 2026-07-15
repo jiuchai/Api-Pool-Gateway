@@ -30,56 +30,38 @@
 | 前端     | Vue 3 + Vite + Element Plus + Pinia                 |
 | 认证     | JWT (Bearer) + API Key                              |
 
-### 快速开始
+### 快速开始（Docker 一键部署）
 
-#### 环境要求
-
-- Node.js >= 18
-- npm >= 9
-
-#### 安装
+镜像自带预构建好的前端文件（在 `public/` 目录），无需编译步骤。
 
 ```bash
-# 克隆仓库
 git clone https://github.com/jiuchai/Api-Pool-Gateway.git
 cd Api-Pool-Gateway
+cp .env.example .env          # 编辑 .env 设置你自己的配置
 
-# 安装后端依赖
-npm install
-
-# 安装前端依赖
-cd frontend && npm install && cd ..
-
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 设置你自己的配置
+docker-compose up -d
+# 打开 http://localhost:3002
 ```
 
-#### 开发模式运行
+所有环境变量自动从 `.env` 文件读取。
+
+#### 修改前端后重新构建
+
+改了前端代码，想让 Docker 重新编译前端：
 
 ```bash
-# 同时运行前后端
+BUILD_FRONTEND=true docker-compose up -d --build
+```
+
+#### 开发模式（热更新）
+
+```bash
+# 环境要求：Node.js >= 18, npm >= 9
+npm install && cd frontend && npm install && cd ..
 npm run dev:all
-
-# 或分开运行：
-npm run dev        # 后端 → http://localhost:3002
-npm run frontend   # 前端 → http://localhost:5174
+# 后端 → http://localhost:3002
+# 前端开发服务器 → http://localhost:5174
 ```
-
-#### 生产模式运行
-
-```bash
-# 构建前端
-cd frontend && npm run build && cd ..
-
-# 将构建产物复制到 public 目录
-cp -r frontend/dist/* public/
-
-# 启动服务器
-npm start
-```
-
-访问 `http://localhost:3002` 即可使用。
 
 #### 默认管理员账号
 
@@ -90,17 +72,6 @@ npm start
 | 密码     | Admin@123456    |
 
 > 部署到生产环境前，请在 `.env` 中修改这些值。
-
-### Docker 部署
-
-```bash
-# 编辑 .env 配置后，执行：
-docker-compose up -d --build
-
-# 打开 http://localhost:3002
-```
-
-所有环境变量自动从 `.env` 文件读取。
 
 ### 环境变量
 
@@ -138,8 +109,25 @@ docker-compose up -d --build
 │   │   └── api/        # Axios 请求封装
 │   └── package.json
 ├── image/              # 截图
+├── skills.md           # AI Agent 技能文档
 └── data/               # nedb 数据库文件（自动创建）
 ```
+
+### AI Agent 集成
+
+网关提供了工具发现和调用的 API，供 AI Agent 程序化调用已注册的服务。
+
+#### Tools API
+
+| 接口地址 | 方法 | 说明 |
+| -------- | ------ | ----------- |
+| `/api/gateway/tools` | GET | 获取所有可用工具（无需认证） |
+| `/api/gateway/:slug/info` | GET | 获取指定工具的详细信息 |
+| `/api/gateway/:slug` | POST | 调用工具（需要 API Key） |
+
+#### 技能定义
+
+完整 AI Agent 使用文档请参阅 [skills.md](skills.md)，包含使用方法、认证方式和 API schema。
 
 ### License
 

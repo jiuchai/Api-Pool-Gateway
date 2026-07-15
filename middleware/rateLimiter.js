@@ -1,5 +1,6 @@
 const { db } = require('../database');
 const config = require('../config');
+const tierService = require('../services/tierService');
 
 function createRateLimiter(windowMs = 60000) {
   return async (req, res, next) => {
@@ -7,7 +8,8 @@ function createRateLimiter(windowMs = 60000) {
       const userId = req.user?._id || 'anonymous';
       const now = Date.now();
       const tierIndex = req.user?.tierIndex || 0;
-      const tier = config.billing.tiers[tierIndex] || config.billing.tiers[0];
+      const tiers = await tierService._getRawTiers();
+      const tier = tiers[tierIndex] || tiers[0] || { ratePerSecond: 10 };
 
       // 每秒限流
       const perSecondLimit = req.user?.rateLimit?.perSecond || tier.ratePerSecond || 10;

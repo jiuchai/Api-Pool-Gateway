@@ -3,6 +3,7 @@
     <router-link to="/" class="brand">API Pool</router-link>
     <div class="links" :class="{open:mo}">
       <router-link to="/docs">文档</router-link>
+      <router-link to="/tools">工具中心</router-link>
       <router-link to="/test" class="hl">⚡ 测试</router-link>
       <template v-if="a.isLoggedIn">
         <router-link to="/dashboard">控制台</router-link>

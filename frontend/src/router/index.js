@@ -8,6 +8,7 @@ const routes = [
   { path: '/settings', name: 'Settings', component: () => import('@/views/Settings.vue'), meta: { auth: true } },
   { path: '/logs', name: 'Logs', component: () => import('@/views/Logs.vue'), meta: { auth: true } },
   { path: '/docs', name: 'Docs', component: () => import('@/views/Docs.vue') },
+  { path: '/tools', name: 'Tools', component: () => import('@/views/Tools.vue') },
   { path: '/test', name: 'Test', component: () => import('@/views/Test.vue') },
   { path: '/plans', name: 'Plans', component: () => import('@/views/Plans.vue') },
   { path: '/redeem', name: 'Redeem', component: () => import('@/views/Redeem.vue'), meta: { auth: true } },

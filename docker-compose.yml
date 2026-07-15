@@ -2,11 +2,14 @@ version: "3.8"
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        BUILD_FRONTEND: ${BUILD_FRONTEND:-false}
     container_name: pool-gateway
     restart: unless-stopped
     ports:
-      - "${PORT}:${PORT}"
+      - "${PORT:-3002}:${PORT:-3002}"
     environment:
       - PORT
       - JWT_SECRET

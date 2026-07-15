@@ -177,6 +177,7 @@ router.get('/audit', async (req, res) => {
 // ===== 计费管理 =====
 const billingService = require('../services/billingService');
 const redeemService = require('../services/redeemService');
+const tierService = require('../services/tierService');
 
 router.get('/billing/stats', async (req, res) => {
   try {
@@ -194,20 +195,51 @@ router.post('/billing/generate', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/config', (req, res) => {
-  res.json({ success: true, data: { billing: billingService.getBillingConfig(), rateLimit: config.rateLimit, proxy: config.proxy } });
+router.get('/config', async (req, res) => {
+  try {
+    const tiers = await billingService.getBillingConfig();
+    res.json({ success: true, data: { billing: tiers, rateLimit: config.rateLimit, proxy: config.proxy } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/config/billing', async (req, res) => {
+// 套餐 CRUD
+router.get('/tiers', async (req, res) => {
   try {
-    if (req.body.tiers) config.billing.tiers = req.body.tiers.map(t => ({
-      name: t.name, ratePerSecond: Number(t.ratePerSecond) || 10,
-      maxCallsPerDay: t.maxCallsPerDay !== undefined ? Number(t.maxCallsPerDay) : -1,
-      maxCalls: Number(t.maxCalls) || 0, monthlyFee: Number(t.monthlyFee) || 0
-    }));
-    if (req.body.defaultTierIndex !== undefined) config.billing.defaultTierIndex = req.body.defaultTierIndex;
-    res.json({ success: true, data: config.billing });
+    const tiers = await tierService.getTiers();
+    res.json({ success: true, data: tiers });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/tiers', async (req, res) => {
+  try {
+    const tier = await tierService.addTier(req.body);
+    await auditLog('tier_created', { name: tier.name });
+    res.json({ success: true, data: tier });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/tiers/:id', async (req, res) => {
+  try {
+    const tier = await tierService.updateTier(req.params.id, req.body);
+    await auditLog('tier_updated', { tierId: req.params.id });
+    res.json({ success: true, data: tier });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+router.delete('/tiers/:id', async (req, res) => {
+  try {
+    const result = await tierService.deleteTier(req.params.id);
+    await auditLog('tier_deleted', { tierId: req.params.id });
+    res.json({ success: true, data: result });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+router.put('/tiers/batch/save', async (req, res) => {
+  try {
+    const tiers = await tierService.saveAll(req.body.tiers);
+    await auditLog('tiers_batch_saved');
+    res.json({ success: true, data: tiers });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
 router.get('/billing', async (req, res) => {

@@ -82,6 +82,13 @@ const userService = {
     return { id: keyId, key: newKey, name: rec.name };
   },
 
+  async deleteApiKey(userId, keyId) {
+    const rec = await db.apiKeys.findOne({ _id: keyId, userId });
+    if (!rec) throw { status: 404, message: 'API Key不存在' };
+    await db.apiKeys.remove({ _id: keyId });
+    return { message: '已删除' };
+  },
+
   async changePassword(userId, oldPw, newPw) {
     const user = await db.users.findOne({ _id: userId });
     if (!await bcrypt.compare(oldPw, user.password)) throw { status: 400, message: '原密码错误' };
