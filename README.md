@@ -45,6 +45,8 @@ docker-compose up -d
 
 All environment variables are read from the `.env` file automatically.
 
+> To access upstream services running on the host machine (e.g., `127.0.0.1:1001`) from inside the Docker container, use `host.docker.internal` instead of `127.0.0.1`, e.g., `http://host.docker.internal:1001`. The `extra_hosts` is already configured in `docker-compose.yml`.
+
 #### Rebuilding Frontend
 
 If you modified the frontend and want to rebuild it inside Docker:

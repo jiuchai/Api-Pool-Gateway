@@ -3,6 +3,37 @@
     <h1 class="page-title">控制台</h1>
     <div v-if="loading" class="loading">加载中...</div>
     <template v-else-if="data">
+      <!-- 当前套餐 -->
+      <div class="tier-card card" v-if="usage">
+        <div class="tier-card-header">
+          <div>
+            <div class="tier-name">{{ usage.tier.name }}</div>
+            <div class="tier-limit">{{ usage.tier.ratePerSecond }} 次/秒 · 日上限 {{ usage.tier.maxCallsPerDay === -1 ? '不限' : usage.tier.maxCallsPerDay.toLocaleString() }}</div>
+            <div v-if="usage.tier.subscriptions?.length" class="tier-expires">
+              有效期至：<strong>{{ latestExpire }}</strong>
+              <span v-if="usage.tier.subscriptions.length > 1" class="sub-count">（{{ usage.tier.subscriptions.length }} 个有效订阅）</span>
+            </div>
+          </div>
+          <div class="tier-actions">
+            <div class="tier-fee">¥{{ usage.tier.monthlyFee }}<span>/月</span></div>
+            <div class="tier-switch">
+              <el-select v-model="activeSubId" size="small" style="width:140px" placeholder="切换套餐" @change="switchActiveTier">
+                <el-option v-if="usage.tier.subscriptions?.length" v-for="s in usage.tier.subscriptions" :key="s.id" :label="s.name" :value="s.id" />
+                <el-option label="免费版" value="free" />
+              </el-select>
+              <el-button type="primary" size="small" @click="goPlans">购买套餐</el-button>
+            </div>
+          </div>
+        </div>
+        <div class="tier-progress-row">
+          <div class="tier-progress-label">
+            <span>今日用量</span>
+            <span>{{ usage.todayCalls?.toLocaleString() || usage.callCount?.toLocaleString() || 0 }} / {{ usage.tier.maxCallsPerDay === -1 ? '不限' : usage.tier.maxCallsPerDay.toLocaleString() }}</span>
+          </div>
+          <el-progress :percentage="usagePercent" :status="usageStatus" :stroke-width="14" />
+        </div>
+      </div>
+
       <!-- 统计卡片 -->
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-label">今日调用</div><div class="stat-value">{{ data.stats.todayCalls }}</div></div>
@@ -53,16 +84,73 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { get } from '@/api/client'
+import { useRouter } from 'vue-router'
+import { get, put } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
 import { Line, Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, Filler } from 'chart.js'
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, Filler)
 
 const toast = useToastStore()
+const router = useRouter()
 const loading = ref(true)
 const data = ref(null)
+const usage = ref(null)
 const recentLogs = ref([])
+const activeSubId = ref('')
+
+const latestExpire = computed(() => {
+  if (!usage.value?.tier?.subscriptions?.length) return ''
+  return usage.value.tier.subscriptions[0].expiresDate
+})
+function goPlans() { router.push('/plans') }
+
+async function switchActiveTier(subId) {
+  try {
+    if (subId === 'free') {
+      await put('/api/billing/active-subscription', { tierIndex: 0 })
+    } else {
+      await put('/api/billing/active-subscription', { subscriptionId: subId })
+    }
+    toast.success('已切换当前套餐')
+    await load()
+  } catch (e) { toast.error(e.message || '切换失败') }
+}
+async function load() {
+  try {
+    const [dashRes, logsRes, usageRes] = await Promise.all([
+      get('/api/logs/dashboard'),
+      get('/api/logs', { page: 1, pageSize: 10 }),
+      get('/api/billing/usage')
+    ])
+    data.value = dashRes.data.data
+    recentLogs.value = logsRes.data.data.logs
+    usage.value = usageRes.data.data
+    // 仅在首次加载时设置当前选中的套餐
+    if (!activeSubId.value) {
+      if (usageRes.data.data.activeTierIndex === 0) {
+        activeSubId.value = 'free'
+      } else if (usage.value?.tier?.subscriptions?.length) {
+        activeSubId.value = usage.value.tier.subscriptions[0].id
+      }
+    }
+  } catch (e) { toast.error(e.message || '获取数据失败') }
+  finally { loading.value = false }
+}
+
+const usagePercent = computed(() => {
+  if (!usage.value || usage.value.tier.maxCallsPerDay === -1) return 0
+  const today = usage.value.todayCalls || usage.value.callCount || 0
+  const pct = Math.round((today / usage.value.tier.maxCallsPerDay) * 100)
+  return Math.min(pct, 100)
+})
+const usageStatus = computed(() => {
+  if (!usage.value || usage.value.tier.maxCallsPerDay === -1) return ''
+  const pct = usagePercent.value
+  if (pct >= 100) return 'exception'
+  if (pct >= 80) return 'warning'
+  return 'success'
+})
 
 const chartData = computed(() => {
   if (!data.value?.dailyData?.length) return { labels: ['暂无'], datasets: [{ label: '调用次数', data: [0], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#4f46e5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7 }] }
@@ -76,17 +164,7 @@ const statusData = computed(() => {
 const pieOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
 function statusClass(c) { if (c >= 200 && c < 300) return 's2'; if (c >= 400 && c < 500) return 's4'; if (c >= 500) return 's5'; return '' }
 
-onMounted(async () => {
-  try {
-    const [dashRes, logsRes] = await Promise.all([
-      get('/api/logs/dashboard'),
-      get('/api/logs', { page: 1, pageSize: 10 })
-    ])
-    data.value = dashRes.data.data
-    recentLogs.value = logsRes.data.data.logs
-  } catch (e) { toast.error(e.message || '获取数据失败') }
-  finally { loading.value = false }
-})
+onMounted(load)
 </script>
 
 <style scoped>
@@ -117,4 +195,16 @@ onMounted(async () => {
 .pie-body { height: 300px; }
 .text-muted { color: #94a3b8; font-size: .8rem; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
+.tier-card { margin-bottom: 20px; padding: 20px; }
+.tier-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.tier-name { font-size: 1.15rem; font-weight: 600; color: #1e293b; }
+.tier-limit { font-size: 0.82rem; color: #64748b; margin-top: 4px; }
+.tier-expires { font-size: 0.82rem; color: #64748b; margin-top: 6px; }
+.tier-expires strong { color: #4f46e5; }
+.sub-count { color: #94a3b8; margin-left: 6px; }
+.tier-actions { text-align: right; }
+.tier-fee { font-size: 1.6rem; font-weight: 700; color: #4f46e5; margin-bottom: 8px; }
+.tier-fee span { font-size: 0.85rem; color: #94a3b8; font-weight: 400; }
+.tier-switch { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.tier-progress-label { display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 8px; }
 </style>

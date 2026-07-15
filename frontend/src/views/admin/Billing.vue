@@ -21,13 +21,12 @@
       </div>
       <div class="card-body">
         <table>
-          <thead><tr><th style="width:100px">名称</th><th>速率 (次/秒)</th><th>日上限</th><th>月上限</th><th>月费 (¥)</th><th style="width:60px">操作</th></tr></thead>
+          <thead><tr><th style="width:100px">名称</th><th>速率 (次/秒)</th><th>日上限</th><th>月费 (¥)</th><th style="width:60px">操作</th></tr></thead>
           <tbody>
             <tr v-for="(t, i) in tierEdit" :key="t._id || i">
               <td><el-input v-model="t.name" size="small" style="width:100px" /></td>
               <td><el-input-number v-model="t.ratePerSecond" size="small" :min="1" :max="1000" /></td>
               <td><el-input-number v-model="t.maxCallsPerDay" size="small" :min="-1" :max="99999999" /><span v-if="t.maxCallsPerDay === -1" class="inf">不限</span></td>
-              <td><el-input-number v-model="t.maxCalls" size="small" :min="-1" :max="99999999" /><span v-if="t.maxCalls === -1" class="inf">不限</span></td>
               <td><el-input-number v-model="t.monthlyFee" size="small" :min="0" :max="99999" :precision="0" /></td>
               <td><el-button size="small" type="danger" :icon="Delete" circle @click="removeTier(i)" :disabled="tierEdit.length <= 1" /></td>
             </tr>
@@ -97,7 +96,7 @@ async function loadData(p = 1) {
 }
 
 function addTier() {
-  tierEdit.value.push({ name: '新套餐', ratePerSecond: 10, maxCallsPerDay: 100, maxCalls: 1000, monthlyFee: 0 })
+  tierEdit.value.push({ name: '新套餐', ratePerSecond: 10, maxCallsPerDay: 100, monthlyFee: 0 })
 }
 
 async function removeTier(index) {
@@ -117,7 +116,6 @@ async function saveTiers() {
     const data = tierEdit.value.map((t, i) => ({
       name: t.name, ratePerSecond: Number(t.ratePerSecond) || 10,
       maxCallsPerDay: t.maxCallsPerDay !== undefined ? Number(t.maxCallsPerDay) : -1,
-      maxCalls: t.maxCalls !== undefined ? Number(t.maxCalls) : -1,
       monthlyFee: Number(t.monthlyFee) || 0,
     }))
     await put('/api/admin/tiers/batch/save', { tiers: data })
@@ -151,7 +149,7 @@ onMounted(() => loadData())
 .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
 .page-title { font-size: 1.5rem; margin-bottom: 24px; }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; }
+.stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 110px; }
 .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; }
 .stat-value { font-size: 1.6rem; font-weight: 700; }
 .stat-value.primary { color: #4f46e5; }

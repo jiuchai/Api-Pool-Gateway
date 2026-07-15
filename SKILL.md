@@ -8,7 +8,7 @@
 
 Default: `http://localhost:3002` — replace with the actual deployed domain.
 
----
+***
 
 ## Overview
 
@@ -21,6 +21,7 @@ This is a skill package for AI agents to interact with the API Pool Gateway. The
 Calling tools requires an API Key. If you don't have one, **ask the user to provide their API Key**.
 
 Users can obtain an API Key by:
+
 1. Registering at `{BASE_URL}/register`
 2. Logging in at `{BASE_URL}/login`
 3. Going to `{BASE_URL}/settings` to copy their API Key
@@ -33,7 +34,7 @@ Include it in every request header:
 X-API-Key: <api-key>
 ```
 
----
+***
 
 ## Tools
 
@@ -64,7 +65,7 @@ GET {BASE_URL}/api/gateway/tools
 }
 ```
 
----
+***
 
 ### 2. `get_tool_info` — Get Detailed Tool Information
 
@@ -97,7 +98,7 @@ GET {BASE_URL}/api/gateway/tools/{slug}
 }
 ```
 
----
+***
 
 ### 3. `call_tool` — Execute a Tool
 
@@ -131,7 +132,7 @@ X-API-Key: <api-key>
 }
 ```
 
----
+***
 
 ## Workflow
 
@@ -141,26 +142,27 @@ X-API-Key: <api-key>
 3. call_tool          →  Execute with API Key + parameters
 ```
 
----
+***
 
 ## Error Codes
 
-| Code | Meaning |
-|------|---------|
-| 401 | Missing or invalid API Key |
-| 404 | Tool not found or disabled |
-| 400 | Invalid parameters |
-| 429 | Rate limit exceeded |
-| 502 | Upstream service error |
-| 504 | Upstream service timeout |
+| Code | Meaning                    |
+| ---- | -------------------------- |
+| 401  | Missing or invalid API Key |
+| 404  | Tool not found or disabled |
+| 400  | Invalid parameters         |
+| 429  | Rate limit exceeded        |
+| 502  | Upstream service error     |
+| 504  | Upstream service timeout   |
 
----
+***
 
 ## Rate Limits
 
-| Tier | Requests/sec | Requests/day |
-|------|-------------|-------------|
-| Free | 5 | 100 |
-| Basic | 20 | 5,000 |
-| Pro | 50 | 20,000 |
-| Enterprise | 100 | Unlimited |
+| Tier       | Requests/sec | Requests/day |
+| ---------- | ------------ | ------------ |
+| Free       | 5            | 100          |
+| Basic      | 20           | 5,000        |
+| Pro        | 50           | 20,000       |
+| Enterprise | 100          | Unlimited    |
+

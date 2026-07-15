@@ -1,9 +1,11 @@
 /**
- * 计费服务模块（按月订阅制，无按次计费）
+ * 计费服务模块（按月订阅制，支持多套餐同时订阅）
  */
 const { db } = require('../database');
 const tierService = require('./tierService');
-const { getCurrentMonth, calculateCost, formatDateTime } = require('../utils/helpers');
+const { getCurrentMonth, calculateCost, formatDateTime, formatDate, addDays } = require('../utils/helpers');
+
+function getNow() { return Date.now(); }
 
 const billingService = {
   async getUserTier(user) {
@@ -11,24 +13,110 @@ const billingService = {
     return tiers[user.tierIndex] || tiers[0];
   },
 
+  /** 获取用户当前生效的订阅套餐（取到期时间最晚的有效订阅，可免费叠加） */
+  async getActiveSubscriptions(userId) {
+    const now = getNow();
+    const subs = await db.userSubscriptions.find({ userId, expiresAt: { $gte: now } }).sort({ expiresAt: -1 });
+    const tiers = await tierService._getRawTiers();
+    return subs.map(s => {
+      const tier = tiers[s.tierIndex] || tiers[0];
+      return {
+        id: s._id,
+        tierIndex: s.tierIndex,
+        name: tier.name,
+        ratePerSecond: tier.ratePerSecond,
+        maxCallsPerDay: tier.maxCallsPerDay,
+        monthlyFee: tier.monthlyFee,
+        startedAt: formatDateTime(s.startedAt),
+        expiresAt: formatDateTime(s.expiresAt),
+        expiresDate: formatDate(s.expiresAt),
+      };
+    });
+  },
+
+  /** 计算合并后的当前限制：取所有有效订阅中最大的速率和日上限 */
+  async getMergedTier(userId) {
+    const tiers = await tierService._getRawTiers();
+    const subs = await this.getActiveSubscriptions(userId);
+    if (!subs.length) {
+      const free = tiers[0] || { name: '默认', ratePerSecond: 5, maxCallsPerDay: 100, monthlyFee: 0 };
+      return { name: free.name, ratePerSecond: free.ratePerSecond, maxCallsPerDay: free.maxCallsPerDay, monthlyFee: free.monthlyFee, subscriptions: [] };
+    }
+    const merged = {
+      name: subs.length === 1 ? subs[0].name : '组合套餐',
+      ratePerSecond: Math.max(...subs.map(s => s.ratePerSecond)),
+      maxCallsPerDay: subs.some(s => s.maxCallsPerDay === -1) ? -1 : Math.max(...subs.map(s => s.maxCallsPerDay)),
+      monthlyFee: subs.reduce((sum, s) => sum + s.monthlyFee, 0),
+      subscriptions: subs,
+    };
+    return merged;
+  },
+
   async getCurrentUsage(userId) {
     const month = getCurrentMonth();
     let record = await db.billingRecords.findOne({ userId, month });
-    const tiers = await tierService._getRawTiers();
-    const defaultTierIndex = 0;
     if (!record) {
-      record = {
-        userId, month, callCount: 0, tierIndex: defaultTierIndex, createdAt: Date.now(),
-      };
+      record = { userId, month, callCount: 0, tierIndex: 0, createdAt: Date.now() };
     }
+    const mergedTier = await this.getMergedTier(userId);
+    // 统计今日调用
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const todayCalls = await db.callLogs.count({ userId, timestamp: { $gte: startOfDay.getTime() } });
     const user = await db.users.findOne({ _id: userId });
-    const tier = tiers[record.tierIndex] || tiers[0];
     return {
-      month: record.month, callCount: record.callCount,
-      cost: calculateCost(record.callCount, tier),
-      tier: { name: tier.name, monthlyFee: tier.monthlyFee, maxCalls: tier.maxCalls },
-      totalCost: tier.monthlyFee,
+      month: record.month, callCount: record.callCount, todayCalls,
+      cost: calculateCost(record.callCount, mergedTier),
+      tier: mergedTier,
+      totalCost: mergedTier.monthlyFee,
+      activeTierIndex: user?.tierIndex ?? 0,
     };
+  },
+
+  /** 设置用户当前主用订阅（用于 billingRecords 与后台统计） */
+  async setActiveSubscription(userId, subscriptionId) {
+    const sub = await db.userSubscriptions.findOne({ _id: subscriptionId, userId });
+    if (!sub) throw { status: 404, message: '订阅不存在' };
+    if (sub.expiresAt < getNow()) throw { status: 400, message: '订阅已过期' };
+    await db.users.update({ _id: userId }, { $set: { tierIndex: sub.tierIndex, updatedAt: Date.now() } });
+    await db.billingRecords.update({ userId, month: getCurrentMonth() }, { $set: { tierIndex: sub.tierIndex } }, { upsert: true });
+    return { message: '已切换当前套餐', tierIndex: sub.tierIndex };
+  },
+
+  /** 直接切换到指定套餐索引（用于切回免费版等） */
+  async setActiveTier(userId, tierIndex) {
+    const tiers = await tierService._getRawTiers();
+    if (tierIndex < 0 || tierIndex >= tiers.length) throw { status: 400, message: '无效的套餐档次' };
+    await db.users.update({ _id: userId }, { $set: { tierIndex, updatedAt: Date.now() } });
+    await db.billingRecords.update({ userId, month: getCurrentMonth() }, { $set: { tierIndex } }, { upsert: true });
+    return { message: '已切换当前套餐', tierIndex };
+  },
+
+  /** 购买/续订套餐（durationDays 默认 30 天） */
+  async subscribeTier(userId, tierIndex, durationDays = 30) {
+    const tiers = await tierService._getRawTiers();
+    if (tierIndex === undefined || tierIndex < 0 || tierIndex >= tiers.length) throw { status: 400, message: '无效的套餐' };
+    const user = await db.users.findOne({ _id: userId });
+    if (!user) throw { status: 404, message: '用户不存在' };
+    const now = new Date();
+    // 如果同一套餐已有有效订阅，则续期（从原到期时间往后加）
+    const existing = await db.userSubscriptions.findOne({ userId, tierIndex, expiresAt: { $gte: now.getTime() } });
+    const baseTime = existing ? new Date(existing.expiresAt) : now;
+    const expiresAt = addDays(baseTime, durationDays);
+    const sub = {
+      userId, tierIndex,
+      startedAt: now.getTime(),
+      expiresAt: expiresAt.getTime(),
+      durationDays,
+      createdAt: now.getTime(),
+    };
+    if (existing) {
+      await db.userSubscriptions.update({ _id: existing._id }, { $set: { expiresAt: sub.expiresAt, durationDays: existing.durationDays + durationDays, updatedAt: now.getTime() } });
+    } else {
+      await db.userSubscriptions.insert(sub);
+    }
+    // 同步 billingRecords 当前月份记录
+    await db.billingRecords.update({ userId, month: getCurrentMonth() }, { $set: { tierIndex } }, { upsert: true });
+    return { message: '订阅成功', tierIndex, expiresAt: formatDateTime(expiresAt) };
   },
 
   async getBills(userId, page = 1, pageSize = 12) {

@@ -41,6 +41,79 @@ router.delete('/services/:slug', async (req, res) => {
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
+// 导出服务
+router.get('/services/export', async (req, res) => {
+  try {
+    const services = await db.services.find({}).sort({ createdAt: -1 });
+    const data = services.map(s => ({
+      slug: s.slug, name: s.name, description: s.description, category: s.category,
+      targetUrl: s.targetUrl, method: s.method, forwardType: s.forwardType || 'json',
+      forwardMode: s.forwardMode || 'template', customScript: s.customScript || '',
+      bodyTemplate: s.bodyTemplate || '',
+      forwardHeaders: s.forwardHeaders || {}, params: s.params || [],
+      inputExample: s.inputExample || '', outputExample: s.outputExample || '',
+    }));
+    res.setHeader('Content-Disposition', 'attachment; filename="api-pool-services.json"');
+    res.json({ version: '1.0', exportedAt: new Date().toISOString(), count: data.length, services: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 导入服务
+router.post('/services/import', async (req, res) => {
+  try {
+    const { services, conflictStrategy } = req.body; // conflictStrategy: 'overwrite' | 'skip'
+    if (!Array.isArray(services) || services.length === 0) {
+      return res.status(400).json({ error: '无有效服务数据' });
+    }
+
+    const results = { created: 0, overwritten: 0, skipped: 0, errors: [] };
+    const existingSlugs = new Set((await db.services.find({})).map(s => s.slug));
+
+    for (const svc of services) {
+      if (!svc.slug || !svc.name || !svc.targetUrl) {
+        results.errors.push({ slug: svc.slug || 'unknown', message: '缺少必填字段' });
+        continue;
+      }
+      try {
+        const exists = await db.services.findOne({ slug: svc.slug });
+        if (exists) {
+          if (conflictStrategy === 'skip') {
+            results.skipped++;
+          } else {
+            await db.services.update({ slug: svc.slug }, { $set: {
+              name: svc.name, description: svc.description || '', category: svc.category || '',
+              targetUrl: svc.targetUrl, method: svc.method || 'POST',
+              forwardType: svc.forwardType || 'json', forwardMode: svc.forwardMode || 'template',
+              customScript: svc.customScript || '',
+              bodyTemplate: svc.bodyTemplate || '', forwardHeaders: svc.forwardHeaders || {},
+              params: svc.params || [], inputExample: svc.inputExample || '',
+              outputExample: svc.outputExample || '', updatedAt: Date.now(),
+            } });
+            results.overwritten++;
+          }
+        } else {
+          await db.services.insert({
+            slug: svc.slug, name: svc.name, description: svc.description || '',
+            category: svc.category || '', targetUrl: svc.targetUrl,
+            method: svc.method || 'POST', forwardType: svc.forwardType || 'json',
+            forwardMode: svc.forwardMode || 'template', customScript: svc.customScript || '',
+            bodyTemplate: svc.bodyTemplate || '',
+            forwardHeaders: svc.forwardHeaders || {}, params: svc.params || [],
+            inputExample: svc.inputExample || '', outputExample: svc.outputExample || '',
+            enabled: true, rateLimit: { perMinute: 30 }, createdAt: Date.now(), updatedAt: Date.now(),
+          });
+          results.created++;
+        }
+      } catch (e) {
+        results.errors.push({ slug: svc.slug, message: e.message });
+      }
+    }
+
+    await auditLog('services_imported', { ...results });
+    res.json({ success: true, data: results });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== 用户管理 =====
 router.get('/users', async (req, res) => {
   try {
@@ -198,7 +271,7 @@ router.post('/billing/generate', async (req, res) => {
 router.get('/config', async (req, res) => {
   try {
     const tiers = await billingService.getBillingConfig();
-    res.json({ success: true, data: { billing: tiers, rateLimit: config.rateLimit, proxy: config.proxy } });
+    res.json({ success: true, data: { billing: tiers, rateLimit: config.rateLimit, proxy: config.proxy, serviceStoreUrl: config.serviceStoreUrl } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -291,6 +364,40 @@ router.get('/redeem-usage', async (req, res) => {
     const result = await redeemService.getUsage({ search: req.query.search, page: parseInt(req.query.page) || 1, pageSize: parseInt(req.query.pageSize) || 50 });
     res.json({ success: true, data: result });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== 公告管理 =====
+const noticeService = require('../services/noticeService');
+
+router.get('/notices', async (req, res) => {
+  try {
+    const result = await noticeService.getNotices({ page: parseInt(req.query.page) || 1, pageSize: parseInt(req.query.pageSize) || 20 });
+    res.json({ success: true, data: result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/notices', async (req, res) => {
+  try {
+    const n = await noticeService.createNotice(req.body);
+    await auditLog('notice_created', { id: n._id });
+    res.json({ success: true, data: n });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+router.put('/notices/:id', async (req, res) => {
+  try {
+    const n = await noticeService.updateNotice(req.params.id, req.body);
+    await auditLog('notice_updated', { id: req.params.id });
+    res.json({ success: true, data: n });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+router.delete('/notices/:id', async (req, res) => {
+  try {
+    await noticeService.deleteNotice(req.params.id);
+    await auditLog('notice_deleted', { id: req.params.id });
+    res.json({ success: true, data: { message: '已删除' } });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
 module.exports = router;

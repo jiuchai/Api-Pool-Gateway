@@ -15,6 +15,8 @@ const db = {
   bills: Datastore.create({ filename: path.join(dbPath, 'bills.db'), autoload: true }),
   redeemCodes: Datastore.create({ filename: path.join(dbPath, 'redeem_codes.db'), autoload: true }),
   redeemUsage: Datastore.create({ filename: path.join(dbPath, 'redeem_usage.db'), autoload: true }),
+  notices: Datastore.create({ filename: path.join(dbPath, 'notices.db'), autoload: true }),
+  userSubscriptions: Datastore.create({ filename: path.join(dbPath, 'user_subscriptions.db'), autoload: true }),
 };
 
 async function ensureIndexes() {

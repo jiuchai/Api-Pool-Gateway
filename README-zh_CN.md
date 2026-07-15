@@ -45,6 +45,8 @@ docker-compose up -d
 
 所有环境变量自动从 `.env` 文件读取。
 
+> Docker 容器内如需访问宿主机上运行的 upstream 服务（例如 `127.0.0.1:1001`），请使用 `host.docker.internal` 替代 `127.0.0.1`，例如 `http://host.docker.internal:1001`。已在 `docker-compose.yml` 中配置 `extra_hosts`。
+
 #### 修改前端后重新构建
 
 改了前端代码，想让 Docker 重新编译前端：
@@ -127,7 +129,7 @@ npm run dev:all
 
 #### 技能定义
 
-完整 AI Agent 使用文档请参阅 [skills.md](skills.md)，包含使用方法、认证方式和 API schema。
+完整 AI Agent 使用文档请参阅 [SKILL.md](SKILL.md)，包含使用方法、认证方式和 API schema。请将该文件内容作为 Skill 提供给 AI Agent，Agent 会在需要时调用其中的工具；如需认证，Agent 会主动向用户索取 API Key。
 
 ### License
 

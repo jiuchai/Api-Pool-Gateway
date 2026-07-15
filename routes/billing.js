@@ -10,19 +10,38 @@ router.use(jwtAuth);
 router.get('/tiers', async (req, res) => {
   try {
     const tiers = await tierService.getTiers();
-    res.json({ success: true, data: { tiers: tiers.map((t, i) => ({ index: i, name: t.name, ratePerSecond: t.ratePerSecond || 10, maxCallsPerDay: t.maxCallsPerDay, maxCalls: t.maxCalls, monthlyFee: t.monthlyFee })), currentTierIndex: req.user.tierIndex } });
+    res.json({ success: true, data: { tiers: tiers.map((t, i) => ({ index: i, name: t.name, ratePerSecond: t.ratePerSecond || 10, maxCallsPerDay: t.maxCallsPerDay, monthlyFee: t.monthlyFee })) } });
   } catch (err) { res.status(500).json({ error: '获取套餐失败' }); }
 });
 
-router.put('/tier', async (req, res) => {
+router.get('/subscriptions', async (req, res) => {
   try {
-    const { tierIndex } = req.body;
+    const subs = await billingService.getActiveSubscriptions(req.user._id);
+    res.json({ success: true, data: subs });
+  } catch (err) { res.status(err.status || 500).json({ error: err.message || '获取订阅失败' }); }
+});
+
+router.post('/subscribe', async (req, res) => {
+  try {
+    const { tierIndex, durationDays } = req.body;
+    const result = await billingService.subscribeTier(req.user._id, tierIndex, durationDays);
     const tiers = await tierService._getRawTiers();
-    if (tierIndex === undefined || tierIndex < 0 || tierIndex >= tiers.length) return res.status(400).json({ error: '无效的套餐' });
-    const result = await billingService.changeUserTier(req.user._id, tierIndex);
     const tier = tiers[tierIndex];
-    if (tier.ratePerSecond !== undefined) {
+    if (tier && tier.ratePerSecond !== undefined) {
       await db.users.update({ _id: req.user._id }, { $set: { 'rateLimit.perSecond': tier.ratePerSecond, updatedAt: Date.now() } });
+    }
+    res.json({ success: true, data: result });
+  } catch (err) { res.status(err.status || 500).json({ error: err.message || '订阅失败' }); }
+});
+
+router.put('/active-subscription', async (req, res) => {
+  try {
+    const { subscriptionId, tierIndex } = req.body;
+    let result;
+    if (tierIndex !== undefined) {
+      result = await billingService.setActiveTier(req.user._id, tierIndex);
+    } else {
+      result = await billingService.setActiveSubscription(req.user._id, subscriptionId);
     }
     res.json({ success: true, data: result });
   } catch (err) { res.status(err.status || 500).json({ error: err.message || '切换失败' }); }

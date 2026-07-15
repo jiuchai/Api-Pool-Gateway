@@ -12,13 +12,14 @@ module.exports = {
   proxy: { timeout: 30000 },
   logRetentionDays: 90,
   dbPath: './data',
+  serviceStoreUrl: 'https://raw.githubusercontent.com/jiuchai/Api-Pool-Gateway/main/config/default-services.json',
   billing: {
     defaultTierIndex: 0,
     tiers: [
-      { name: '免费档', ratePerSecond: 5, maxCallsPerDay: 100, maxCalls: 1000, monthlyFee: 0 },
-      { name: '基础档', ratePerSecond: 20, maxCallsPerDay: 5000, maxCalls: 50000, monthlyFee: 29 },
-      { name: '专业档', ratePerSecond: 50, maxCallsPerDay: 20000, maxCalls: 200000, monthlyFee: 99 },
-      { name: '企业档', ratePerSecond: 100, maxCallsPerDay: -1, maxCalls: -1, monthlyFee: 299 },
+      { name: '免费档', ratePerSecond: 5, maxCallsPerDay: 100, monthlyFee: 0 },
+      { name: '基础档', ratePerSecond: 20, maxCallsPerDay: 5000, monthlyFee: 29 },
+      { name: '专业档', ratePerSecond: 50, maxCallsPerDay: 20000, monthlyFee: 99 },
+      { name: '企业档', ratePerSecond: 100, maxCallsPerDay: -1, monthlyFee: 299 },
     ],
   },
   defaultServices: [

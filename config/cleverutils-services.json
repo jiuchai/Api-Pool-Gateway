@@ -1,0 +1,288 @@
+{
+  "version": "1.0",
+  "source": "CleverUtils API (https://cleverutils.com/api)",
+  "exportedAt": "2026-07-15T00:00:00Z",
+  "count": 18,
+  "services": [
+    {
+      "slug": "clever-convert",
+      "name": "万能文件转换",
+      "description": "转换任意文件格式——图片、音频、视频、文档、PDF等，支持143+格式对。上传文件并指定目标格式即可。",
+      "category": "convert",
+      "targetUrl": "https://cleverutils.com/api/v1/convert",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要转换的源文件，最大200MB" },
+        { "name": "to_format", "type": "string", "required": true, "description": "目标格式扩展名，如 png、mp3、pdf、webp" },
+        { "name": "img_quality", "type": "number", "required": false, "description": "图片质量 0-100，默认80" }
+      ],
+      "inputExample": "{\n  \"file\": \"@photo.png\",\n  \"to_format\": \"jpg\",\n  \"img_quality\": 85\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": {\n      \"filename\": \"photo.jpg\",\n      \"url\": \"https://cleverutils.com/api/v1/jobs/xxx/output\"\n    }\n  }\n}"
+    },
+    {
+      "slug": "clever-upscale",
+      "name": "AI图片超分放大",
+      "description": "使用Real-ESRGAN AI模型将图片放大2x/3x/4x，提升分辨率的同时增强细节。",
+      "category": "ai-image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/upscale-image",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要放大的图片文件" },
+        { "name": "scale", "type": "number", "required": false, "description": "放大倍数：2、3 或 4，默认2" }
+      ],
+      "inputExample": "{\n  \"file\": \"@photo.jpg\",\n  \"scale\": 2\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-speech-to-text",
+      "name": "语音转文字",
+      "description": "使用Whisper模型将音频/视频文件转录为文本，支持多种输出格式（txt/srt/vtt）。",
+      "category": "ai-audio",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/speech-to-text",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "音频或视频文件" },
+        { "name": "format", "type": "string", "required": false, "description": "输出格式：txt / srt / vtt，默认txt" }
+      ],
+      "inputExample": "{\n  \"file\": \"@audio.mp3\",\n  \"format\": \"srt\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-remove-bg",
+      "name": "AI智能抠图",
+      "description": "使用rembg模型自动移除图片背景，输出透明PNG。适合产品图、人像等。",
+      "category": "ai-image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/remove-background",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要抠图的图片文件" }
+      ],
+      "inputExample": "{\n  \"file\": \"@product.jpg\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-vocal-remover",
+      "name": "AI人声分离",
+      "description": "使用Demucs模型将音频中的人声与伴奏分离，适合制作伴奏带、卡拉OK等。",
+      "category": "ai-audio",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/vocal-remover",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "音频文件（MP3/WAV/FLAC等）" }
+      ],
+      "inputExample": "{\n  \"file\": \"@song.mp3\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-colorize",
+      "name": "AI黑白照片上色",
+      "description": "使用深度学习模型为黑白老照片自动上色，还原生动色彩。",
+      "category": "ai-image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/colorize-photo",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "黑白照片文件" }
+      ],
+      "inputExample": "{\n  \"file\": \"@old_photo.jpg\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-restore-photo",
+      "name": "AI老照片修复",
+      "description": "修复并上色老照片——去噪、去划痕、增强细节，一键还原。",
+      "category": "ai-image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/restore-old-photo",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "老照片文件" }
+      ],
+      "inputExample": "{\n  \"file\": \"@damaged_photo.jpg\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-change-bg",
+      "name": "AI换背景",
+      "description": "替换图片背景，可指定背景颜色或上传背景图。",
+      "category": "ai-image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/change-background",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "前景图片" },
+        { "name": "background", "type": "string", "required": false, "description": "背景颜色（如 #ffffff）或背景图片URL" }
+      ],
+      "inputExample": "{\n  \"file\": \"@portrait.jpg\",\n  \"background\": \"#4f46e5\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-ocr",
+      "name": "图片/PDF文字识别",
+      "description": "使用Tesseract OCR从图片或PDF中提取文字，支持多语言。",
+      "category": "ai-text",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/image-to-text",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "图片或PDF文件" },
+        { "name": "ocr_lang", "type": "string", "required": false, "description": "Tesseract语言代码，如 chi_sim+eng，默认eng" }
+      ],
+      "inputExample": "{\n  \"file\": \"@scan.png\",\n  \"ocr_lang\": \"chi_sim+eng\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"text\": \"识别的文字内容...\"\n  }\n}"
+    },
+    {
+      "slug": "clever-noisereduce",
+      "name": "AI音频降噪",
+      "description": "使用DeepFilterNet3模型去除音频中的背景噪音，提升语音清晰度。",
+      "category": "ai-audio",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/noise-reduction",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "音频文件" }
+      ],
+      "inputExample": "{\n  \"file\": \"@noisy_recording.wav\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-compress-image",
+      "name": "图片压缩",
+      "description": "压缩图片文件大小，支持JPG/PNG/WebP/GIF，可调节质量参数。",
+      "category": "image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/compress-image",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要压缩的图片文件" },
+        { "name": "img_quality", "type": "number", "required": false, "description": "压缩质量 0-100，默认80" }
+      ],
+      "inputExample": "{\n  \"file\": \"@large_photo.png\",\n  \"img_quality\": 70\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"size_human\": \"45 KB\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-resize-image",
+      "name": "图片尺寸调整",
+      "description": "将图片调整到指定宽高尺寸，支持等比缩放。",
+      "category": "image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/resize-image",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要调整的图片文件" },
+        { "name": "img_resize_w", "type": "number", "required": false, "description": "目标宽度(px)" },
+        { "name": "img_resize_h", "type": "number", "required": false, "description": "目标高度(px)" }
+      ],
+      "inputExample": "{\n  \"file\": \"@banner.png\",\n  \"img_resize_w\": 800\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-watermark",
+      "name": "图片添加水印",
+      "description": "给图片添加文字水印，可自定义文字内容和位置。",
+      "category": "image",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/watermark-image",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要加水印的图片文件" },
+        { "name": "text", "type": "string", "required": true, "description": "水印文字内容" }
+      ],
+      "inputExample": "{\n  \"file\": \"@photo.jpg\",\n  \"text\": \"© MyBrand 2026\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-extract-audio",
+      "name": "视频提取音频",
+      "description": "从视频文件中提取音频轨道，输出为MP3格式。",
+      "category": "video",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/extract-audio-from-video",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "视频文件" }
+      ],
+      "inputExample": "{\n  \"file\": \"@video.mp4\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"filename\": \"video.mp3\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-compress-video",
+      "name": "视频压缩",
+      "description": "压缩视频文件大小，可指定码率或质量预设。",
+      "category": "video",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/compress-video",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要压缩的视频文件" },
+        { "name": "bitrate", "type": "string", "required": false, "description": "目标码率，如 '1M'、'500k'" }
+      ],
+      "inputExample": "{\n  \"file\": \"@big_video.mp4\",\n  \"bitrate\": \"1M\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"size_human\": \"12 MB\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-trim-video",
+      "name": "视频剪辑裁剪",
+      "description": "裁剪视频片段时间范围，指定起止时间即可。",
+      "category": "video",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/trim-video",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "视频文件" },
+        { "name": "start_time", "type": "string", "required": true, "description": "起始时间，如 '00:00:05' 或 '5'" },
+        { "name": "end_time", "type": "string", "required": true, "description": "结束时间，如 '00:01:30' 或 '90'" }
+      ],
+      "inputExample": "{\n  \"file\": \"@video.mp4\",\n  \"start_time\": \"5\",\n  \"end_time\": \"60\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-merge-pdf",
+      "name": "PDF合并",
+      "description": "将多个PDF文件合并为一个PDF文档。",
+      "category": "document",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/merge-pdf",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "files", "type": "file list", "required": true, "description": "要合并的多个PDF文件" }
+      ],
+      "inputExample": "{\n  \"files\": [\"@doc1.pdf\", \"@doc2.pdf\"]\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"filename\": \"merged.pdf\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-webpage-to-pdf",
+      "name": "网页转PDF",
+      "description": "将任意网页URL转换为PDF文件保存。",
+      "category": "document",
+      "targetUrl": "https://cleverutils.com/api/v1/tools/webpage-to-pdf",
+      "method": "POST",
+      "forwardType": "json",
+      "params": [
+        { "name": "url", "type": "string", "required": true, "description": "要转换的网页URL" }
+      ],
+      "inputExample": "{\n  \"url\": \"https://example.com\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"filename\": \"example.com.pdf\" }\n  }\n}"
+    },
+    {
+      "slug": "clever-pdf-to-docx",
+      "name": "PDF转Word",
+      "description": "将PDF文档转换为可编辑的DOCX/Word格式，保留排版和格式。",
+      "category": "document",
+      "targetUrl": "https://cleverutils.com/api/v1/convert",
+      "method": "POST",
+      "forwardType": "form-data",
+      "params": [
+        { "name": "file", "type": "file", "required": true, "description": "要转换的PDF文件，最大200MB" },
+        { "name": "to_format", "type": "string", "required": true, "description": "固定为 docx" }
+      ],
+      "inputExample": "{\n  \"file\": \"@document.pdf\",\n  \"to_format\": \"docx\"\n}",
+      "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"filename\": \"document.docx\" }\n  }\n}"
+    }
+  ]
+}

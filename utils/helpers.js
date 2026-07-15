@@ -6,6 +6,8 @@ function getMonthStart(month) { const [y,m] = month.split('-').map(Number); retu
 function getMonthEnd(month) { const [y,m] = month.split('-').map(Number); return new Date(y, m, 1).getTime() - 1; }
 function calculateCost(callCount, tier) { return Math.round(tier.monthlyFee * 100) / 100; }
 function formatDateTime(date) { const d = new Date(date); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function formatDate(date) { const d = new Date(date); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 function isStrongPassword(pw) { return pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw); }
 
@@ -43,4 +45,4 @@ function validateParams(params, schema) {
   return { sanitized, errors: errors.length ? errors : null };
 }
 
-module.exports = { generateApiKey, getCurrentMonth, getMonthStart, getMonthEnd, calculateCost, formatDateTime, isValidEmail, isStrongPassword, validateParams };
+module.exports = { generateApiKey, getCurrentMonth, getMonthStart, getMonthEnd, calculateCost, formatDateTime, formatDate, addDays, isValidEmail, isStrongPassword, validateParams };

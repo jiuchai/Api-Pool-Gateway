@@ -30,6 +30,7 @@ app.use('/api/logs', require('./routes/logs'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/redeem', require('./routes/redeem'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/skills', require('./routes/skills'));
 
 app.get('/api', (req, res) => {
   res.json({ name: 'API Pool Gateway', version: '1.0.0', description: '动态API聚合网关 - 支持热加载多种API服务', docs: '/#/docs', timestamp: new Date().toISOString() });
@@ -40,6 +41,15 @@ app.get('/api/services', async (req, res) => {
   try {
     const services = await db.services.find({ enabled: true }).sort({ category: 1, name: 1 });
     res.json({ success: true, data: services });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 公开公告列表
+const noticeService = require('./services/noticeService');
+app.get('/api/notices', async (req, res) => {
+  try {
+    const notices = await noticeService.getPublishedNotices();
+    res.json({ success: true, data: notices });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

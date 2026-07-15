@@ -1,23 +1,28 @@
 <template>
   <div class="page" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px);background:#f8fafc">
-    <div style="background:#fff;padding:40px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08);width:100%;max-width:420px">
+    <el-card class="register-card" shadow="hover">
       <h2 style="margin-bottom:4px">注册</h2><p style="color:#94a3b8;margin-bottom:24px;font-size:.9rem">创建API Pool账号</p>
-      <form @submit.prevent="go">
-        <div class="fg"><label>用户名</label><input v-model="f.username" class="fc" placeholder="3-30位字母数字下划线" required /></div>
-        <div class="fg"><label>邮箱</label><input v-model="f.email" type="email" class="fc" required /></div>
-        <div class="fg"><label>密码</label><input v-model="f.password" type="password" class="fc" placeholder="至少8位含大小写字母和数字" required /></div>
-        <div class="fg">
-          <label>验证码</label>
+      <el-form @submit.prevent="go" label-position="top">
+        <el-form-item label="用户名">
+          <el-input v-model="f.username" placeholder="3-30位字母数字下划线" clearable />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="f.email" type="email" placeholder="请输入邮箱" clearable />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="f.password" type="password" placeholder="至少8位含大小写字母和数字" show-password />
+        </el-form-item>
+        <el-form-item label="验证码">
           <div class="captcha-row">
-            <input v-model="f.captcha" class="fc" style="flex:1" placeholder="请输入验证码" required maxlength="4" autocomplete="off" />
+            <el-input v-model="f.captcha" placeholder="请输入验证码" maxlength="4" autocomplete="off" />
             <div class="captcha-img" @click="loadCaptcha" title="点击刷新" v-html="captchaSvg"></div>
           </div>
-        </div>
-        <div v-if="err" class="alert alert-error">{{ err }}</div>
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;border-radius:8px" :disabled="ld">{{ ld?'注册中...':'注册' }}</button>
+        </el-form-item>
+        <el-alert v-if="err" :title="err" type="error" show-icon :closable="false" style="margin-bottom:16px" />
+        <el-button type="primary" style="width:100%" :loading="ld" @click="go">{{ ld ? '注册中...' : '注册' }}</el-button>
         <p style="text-align:center;margin-top:18px;font-size:.9rem;color:#64748b">已有账号？<router-link to="/login" style="color:#4f46e5;font-weight:500">立即登录</router-link></p>
-      </form>
-    </div>
+      </el-form>
+    </el-card>
   </div>
 </template>
 <script setup>
@@ -33,11 +38,11 @@ async function go() { err.value = ''; if (!/^[a-zA-Z0-9_]{3,30}$/.test(f.value.u
 onMounted(loadCaptcha)
 </script>
 <style scoped>
-.fg{margin-bottom:16px}.fg label{display:block;margin-bottom:6px;font-weight:500;font-size:.875rem}
-.fc{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.875rem;outline:none;background:#fff}.fc:focus{border-color:#4f46e5}
-.captcha-row{display:flex;gap:10px;align-items:center}
-.captcha-img{cursor:pointer;flex-shrink:0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;line-height:0;transition:border-color .2s}
-.captcha-img:hover{border-color:#4f46e5}
-.captcha-img :deep(svg){display:block}
-.alert{padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.85rem}.alert-error{background:#fee2e2;color:#991b1b}
+.register-card { width: 100%; max-width: 420px; border-radius: 12px; }
+.register-card :deep(.el-card__body) { padding: 40px; }
+.captcha-row { display: flex; gap: 10px; align-items: center; width: 100%; }
+.captcha-row .el-input { flex: 1; }
+.captcha-img { cursor: pointer; flex-shrink: 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; line-height: 0; transition: border-color .2s; }
+.captcha-img:hover { border-color: #4f46e5; }
+.captcha-img :deep(svg) { display: block; }
 </style>

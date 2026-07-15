@@ -1,0 +1,74 @@
+{
+  "version": "1.0",
+  "services": [
+    {
+      "slug": "random-cat",
+      "name": "随机猫咪图片",
+      "description": "获取一张随机猫咪图片",
+      "category": "image",
+      "targetUrl": "https://api.thecatapi.com/v1/images/search",
+      "method": "GET",
+      "params": [{ "name": "limit", "type": "number", "required": false, "description": "返回数量（1-10）" }],
+      "inputExample": "{}",
+      "outputExample": "[{\"id\":\"abc\",\"url\":\"https://cdn2.thecatapi.com/images/abc.jpg\",\"width\":500,\"height\":500}]"
+    },
+    {
+      "slug": "random-user",
+      "name": "随机用户生成",
+      "description": "生成随机用户信息（姓名、邮箱、头像、地址等）",
+      "category": "data",
+      "targetUrl": "https://randomuser.me/api/",
+      "method": "GET",
+      "params": [
+        { "name": "gender", "type": "string", "required": false, "description": "性别：male 或 female" },
+        { "name": "nat", "type": "string", "required": false, "description": "国籍代码，如 US, GB, FR" }
+      ],
+      "inputExample": "{\"gender\": \"male\", \"nat\": \"US\"}",
+      "outputExample": "{\"results\":[{\"name\":{\"first\":\"John\",\"last\":\"Doe\"},\"email\":\"john.doe@example.com\",\"picture\":{\"large\":\"https://...\"}}]}"
+    },
+    {
+      "slug": "ip-lookup",
+      "name": "IP地址查询",
+      "description": "通过IP地址查询地理位置信息（国家、城市、ISP等）",
+      "category": "network",
+      "targetUrl": "http://ip-api.com/json/{{ip}}?lang=zh-CN",
+      "method": "GET",
+      "params": [{ "name": "ip", "type": "string", "required": true, "description": "要查询的IP地址" }],
+      "inputExample": "{\"ip\": \"8.8.8.8\"}",
+      "outputExample": "{\"country\":\"美国\",\"city\":\"山景城\",\"isp\":\"Google LLC\",\"query\":\"8.8.8.8\"}"
+    },
+    {
+      "slug": "random-joke",
+      "name": "随机笑话",
+      "description": "获取一条随机中英文笑话",
+      "category": "text",
+      "targetUrl": "https://v2.jokeapi.dev/joke/Any?lang=zh",
+      "method": "GET",
+      "params": [],
+      "inputExample": "{}",
+      "outputExample": "{\"type\":\"twopart\",\"setup\":\"为什么程序员不喜欢出门？\",\"delivery\":\"因为外面有太多bug！\",\"category\":\"Programming\"}"
+    },
+    {
+      "slug": "random-dog",
+      "name": "随机狗狗图片",
+      "description": "获取一张随机狗狗图片",
+      "category": "image",
+      "targetUrl": "https://dog.ceo/api/breeds/image/random",
+      "method": "GET",
+      "params": [],
+      "inputExample": "{}",
+      "outputExample": "{\"message\":\"https://images.dog.ceo/breeds/hound-afghan/n02088094_1003.jpg\",\"status\":\"success\"}"
+    },
+    {
+      "slug": "qr-generate",
+      "name": "二维码生成",
+      "description": "生成指定内容的二维码图片链接",
+      "category": "image",
+      "targetUrl": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{text}}",
+      "method": "GET",
+      "params": [{ "name": "text", "type": "string", "required": true, "description": "二维码内容" }],
+      "inputExample": "{\"text\": \"https://example.com\"}",
+      "outputExample": "（返回二维码图片）"
+    }
+  ]
+}

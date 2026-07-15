@@ -21,10 +21,13 @@ const gatewayService = {
       description: s.description,
       category: s.category,
       method: 'POST',
+      forwardType: s.forwardType || 'json',
       params: s.params || [],
       endpoint: `/api/gateway/${s.slug}`,
       rateLimit: s.rateLimit,
       docs: s.docs || '',
+      inputExample: s.inputExample || '',
+      outputExample: s.outputExample || '',
     }));
   },
 
@@ -35,6 +38,10 @@ const gatewayService = {
     const service = await require('../database').db.services.findOne({ slug, enabled: true });
     if (!service) throw { status: 404, message: `服务 "${slug}" 不存在或已禁用` };
 
+    // 只要参数中有 file 类型，自动按 form-data 转发
+    const hasFileParams = service.params && service.params.some(p => p.type === 'file' || p.type === 'file list');
+    const forceFormData = service.forwardType === 'form-data' || hasFileParams;
+
     const hasFiles = params && Object.values(params).some(v => {
       if (Array.isArray(v)) return v.some(item => item && item.path && item.originalname);
       return v && v.path && v.originalname;
@@ -43,6 +50,20 @@ const gatewayService = {
     if (!hasFiles && service.params && service.params.length) {
       const { errors } = validateParams(params, service.params);
       if (errors) throw { status: 400, message: '参数验证失败', details: errors };
+    }
+
+    // 缺少必填文件时，不论转发方式都需要拦截
+    if (!hasFiles) {
+      const requiredFileParams = (service.params || []).filter(p =>
+        (p.type === 'file' || p.type === 'file list') && p.required
+      );
+      if (requiredFileParams.length > 0) {
+        const receivedKeys = params ? Object.keys(params).join(', ') : '无';
+        throw {
+          status: 400,
+          message: `该服务需要上传文件：${requiredFileParams.map(p => p.name).join(', ')}。请选择文件后重试（收到：${receivedKeys}）`,
+        };
+      }
     }
 
     let targetUrl = service.targetUrl;
@@ -56,7 +77,7 @@ const gatewayService = {
     let requestBody = params || {};
     let useFormData = false;
 
-    if (hasFiles) {
+    if (hasFiles || forceFormData) {
       useFormData = true;
       const form = new FormData();
       for (const [key, val] of Object.entries(params)) {
@@ -70,7 +91,7 @@ const gatewayService = {
           });
         } else if (val && typeof val === 'object' && val.path) {
           form.append(key, require('fs').createReadStream(val.path), { filename: val.originalname });
-        } else if (service.bodyTemplate) {
+        } else if (service.bodyTemplate && !forceFormData) {
           let valStr = String(val);
           if (service.bodyTemplate.includes(`{{${key}}}`)) {
             const escaped = valStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -94,6 +115,50 @@ const gatewayService = {
         requestBody = JSON.parse(bodyStr);
       } catch {
         requestBody = bodyStr;
+      }
+    }
+
+    // 自定义脚本转发
+    if (service.forwardMode === 'script' && service.customScript) {
+      try {
+        const vm = require('vm');
+        const sandbox = {
+          params: JSON.parse(JSON.stringify(params)),
+          service: { name: service.name, slug: service.slug, targetUrl: service.targetUrl, method: service.method },
+          axios, require,
+          console: { log: (...a) => {} },
+          setTimeout, clearTimeout, Buffer, URL, URLSearchParams,
+        };
+        if (hasFiles) {
+          for (const [key, val] of Object.entries(params)) {
+            if (val && typeof val === 'object' && val.path) {
+              sandbox.params[key] = val;
+            } else if (Array.isArray(val)) {
+              sandbox.params[key] = val.map(item => item && item.path ? item : item);
+            }
+          }
+        }
+        vm.createContext(sandbox);
+        const wrappedCode = `(async () => { ${service.customScript} })()`;
+        const scriptResult = await vm.runInContext(wrappedCode, sandbox, { timeout: 30000 });
+        if (scriptResult && typeof scriptResult.statusCode === 'number') {
+          return {
+            success: scriptResult.statusCode >= 200 && scriptResult.statusCode < 300,
+            statusCode: scriptResult.statusCode,
+            data: scriptResult.data || {},
+            meta: { service: service.name, scriptResult: true },
+          };
+        }
+        if (scriptResult && scriptResult.url) {
+          targetUrl = scriptResult.url;
+          if (scriptResult.method) service.method = scriptResult.method;
+          if (scriptResult.body !== undefined) requestBody = scriptResult.body;
+          if (scriptResult.headers) {
+            service.forwardHeaders = { ...service.forwardHeaders, ...scriptResult.headers };
+          }
+        }
+      } catch (e) {
+        throw { status: 500, message: `自定义脚本执行失败: ${e.message}` };
       }
     }
 

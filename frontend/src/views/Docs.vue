@@ -15,6 +15,31 @@
       <!-- 右侧内容 -->
       <main class="content">
         <h1 class="pt">服务文档</h1>
+
+        <!-- 认证说明 -->
+        <div class="card auth-card">
+          <div class="cb">
+            <h3 style="margin-bottom:8px">认证方式 & 调用示例</h3>
+            <p style="color:#64748b;margin-bottom:12px">所有接口调用需要在请求头中携带 API Key，在 <router-link to="/settings" style="color:#4f46e5">设置 → API Keys</router-link> 中创建和获取。</p>
+            <p style="color:#94a3b8;font-size:.8rem;margin-bottom:12px">所有接口统一使用 <strong style="color:#1e293b">POST</strong> 方法，API Key 放在 <strong style="color:#1e293b">Header</strong> 中，参数放在 <strong style="color:#1e293b">Body (JSON)</strong> 中。如需上传文件，使用 <strong style="color:#1e293b">multipart/form-data</strong>。</p>
+
+            <div class="mb-2">
+              <div class="curl-label">普通 JSON 请求</div>
+              <pre class="auth-pre"><code>curl -X POST {{ baseUrl }}/api/gateway/{slug} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"param1":"value1","param2":"value2"}'</code></pre>
+            </div>
+            <div class="mb-2">
+              <div class="curl-label">文件上传请求</div>
+              <pre class="auth-pre"><code>curl -X POST {{ baseUrl }}/api/gateway/{slug} \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -F "file=@/path/to/file.jpg" \
+  -F "to_format=docx"</code></pre>
+            </div>
+          </div>
+        </div>
+
         <div v-if="loading" style="text-align:center;padding:40px;color:#94a3b8">加载中...</div>
         <template v-else>
           <div class="card" v-for="(cat, i) in categories" :key="i">
@@ -23,7 +48,10 @@
               <div class="ch"><h3>{{ s.name }} <span class="scat">{{ s.category }}</span></h3></div>
               <div class="cb">
                 <p style="margin-bottom:16px;color:#64748b">{{ s.description }}</p>
-                <div class="ep"><span class="m">POST</span><code>{{ '/api/gateway/' + s.slug }}</code></div>
+                <div class="ep">
+                  <span class="m">POST</span><code>/api/gateway/{{ s.slug }}</code>
+                  <span class="ct-tag" :class="s.forwardType === 'form-data' ? 'ct-form' : 'ct-json'">{{ s.forwardType === 'form-data' ? 'multipart/form-data' : 'application/json' }}</span>
+                </div>
                 <div v-if="s.params&&s.params.length" class="mt-2">
                   <h4>参数</h4>
                   <table><thead><tr><th>名称</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr v-for="p in s.params" :key="p.name"><td><code>{{ p.name }}</code></td><td>{{ p.type || 'string' }}</td><td>{{ p.required ? '是' : '否' }}</td><td>{{ p.description }}</td></tr></tbody></table>
@@ -53,6 +81,7 @@ import { get } from '@/api/client'
 const services = ref([])
 const loading = ref(true)
 const activeSlug = ref('')
+const baseUrl = window.location.origin
 
 const categories = computed(() => {
   const map = {}
@@ -92,7 +121,16 @@ onMounted(async () => {
 .card{background:#fff;border-radius:10px}.ch{padding:14px 20px;border-bottom:1px solid #f1f5f9}.ch h3{font-size:1rem}.cb{padding:20px}
 .scat{font-size:.7rem;padding:2px 8px;border-radius:8px;background:#eef2ff;color:#4f46e5;margin-left:8px;vertical-align:middle}
 .m{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:4px;background:#dbeafe;color:#1e40af;margin-right:10px}
-.ep{display:flex;align-items:center;margin-bottom:8px}
+.ep{display:flex;align-items:center;margin-bottom:8px;gap:8px}
+.ct-tag{font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:4px}
+.ct-json{background:#eef2ff;color:#4f46e5}
+.ct-form{background:#dbeafe;color:#1e40af}
+.auth-card{margin-bottom:24px;border:1px solid #dbeafe;background:#fff}
+.auth-pre{margin:0;padding:12px 14px;background:#1e293b;color:#e2e8f0;font-size:.82rem;border-radius:8px}
+.auth-pre code{font-family:'Consolas',monospace;background:none;padding:0;font-size:inherit;color:inherit}
+.curl-label{padding:5px 12px;background:#f1f5f9;font-size:.75rem;font-weight:600;color:#64748b;border-radius:8px 8px 0 0}
+.mb-2{margin-bottom:14px}
+.mb-2 .auth-pre{border-radius:0 0 8px 8px}
 code{font-family:'Consolas',monospace;font-size:.85rem}
 .mt-2{margin-top:16px}h4{font-size:.9rem;margin-bottom:8px}
 table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.82rem}th{color:#94a3b8;font-weight:600}td code{background:#eef2ff;font-size:.8rem;padding:2px 6px;border-radius:4px}
