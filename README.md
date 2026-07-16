@@ -40,8 +40,10 @@ cd Api-Pool-Gateway
 cp .env.example .env          # Edit .env with your settings
 
 docker-compose up -d
-# Open http://localhost:3002
+# Open http://localhost:8080 (Nginx)
 ```
+
+> The app is accessed through Nginx reverse proxy on port `8080` by default. Both the web UI and all API endpoints are served through this single port — no need to expose the app port directly.
 
 All environment variables are read from the `.env` file automatically.
 
@@ -49,7 +51,7 @@ All environment variables are read from the `.env` file automatically.
 
 #### Rebuilding Frontend
 
-If you modified the frontend and want to rebuild it inside Docker:
+If you modified the frontend and want to rebuild it inside Docker, set `BUILD_FRONTEND=true` in `.env` and rebuild:
 
 ```bash
 BUILD_FRONTEND=true docker-compose up -d --build
@@ -61,7 +63,7 @@ BUILD_FRONTEND=true docker-compose up -d --build
 # Prerequisites: Node.js >= 18, npm >= 9
 npm install && cd frontend && npm install && cd ..
 npm run dev:all
-# Backend → http://localhost:3002
+# Backend → http://localhost:3000
 # Frontend dev server → http://localhost:5174
 ```
 
@@ -79,11 +81,13 @@ npm run dev:all
 
 | Variable        | Description            | Default              |
 | --------------- | ---------------------- | -------------------- |
-| `PORT`          | Server port            | `3002`               |
-| `JWT_SECRET`    | JWT signing secret     | (required)           |
-| `ADMIN_USERNAME`| Admin account username | `admin`              |
-| `ADMIN_EMAIL`   | Admin account email    | `admin@pool.com`     |
-| `ADMIN_PASSWORD`| Admin account password | `Admin@123456`       |
+| `PORT`            | App internal port                              | `3000`               |
+| `JWT_SECRET`      | JWT signing secret                            | (required)           |
+| `ADMIN_USERNAME`  | Admin account username                        | `admin`              |
+| `ADMIN_EMAIL`     | Admin account email                           | `admin@pool.com`     |
+| `ADMIN_PASSWORD`  | Admin account password                        | `Admin@123456`       |
+| `NGINX_PORT`      | Nginx public port (web UI + API)              | `8080`               |
+| `BUILD_FRONTEND`  | Rebuild frontend from source in Docker        | `false`              |
 
 ### Project Structure
 
@@ -110,6 +114,7 @@ npm run dev:all
 │   │   ├── router/     # Vue Router
 │   │   └── api/        # Axios client
 │   └── package.json
+├── nginx/              # Nginx reverse proxy config
 ├── image/              # Screenshots
 ├── skills.md           # AI Agent skill documentation
 └── data/               # nedb database files (auto-created)

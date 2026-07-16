@@ -250,7 +250,7 @@
       "method": "POST",
       "forwardType": "form-data",
       "params": [
-        { "name": "files", "type": "file list", "required": true, "description": "要合并的多个PDF文件" }
+        { "name": "files", "type": "files", "required": true, "description": "要合并的多个PDF文件" }
       ],
       "inputExample": "{\n  \"files\": [\"@doc1.pdf\", \"@doc2.pdf\"]\n}",
       "outputExample": "{\n  \"data\": {\n    \"job_id\": \"xxx\",\n    \"status\": \"done\",\n    \"output\": { \"url\": \"https://...\", \"filename\": \"merged.pdf\" }\n  }\n}"

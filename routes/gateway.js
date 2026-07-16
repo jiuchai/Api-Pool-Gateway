@@ -29,6 +29,10 @@ router.get('/', async (req, res) => {
  */
 router.post('/:slug', apiKeyAuth, createRateLimiter(), upload.any(), callLogger, async (req, res) => {
   try {
+    // 检查该 Key 是否有权限调用此服务
+    if (req.apiKey.services && req.apiKey.services.length > 0 && !req.apiKey.services.includes(req.params.slug)) {
+      return res.status(403).json({ error: '该 API Key 未授权调用此服务' });
+    }
     const params = { ...req.body };
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
@@ -42,7 +46,8 @@ router.post('/:slug', apiKeyAuth, createRateLimiter(), upload.any(), callLogger,
         }
       });
     }
-    const result = await gatewayService.executeService(req.params.slug, params);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const result = await gatewayService.executeService(req.params.slug, params, null, baseUrl);
     res.status(result.statusCode || 200).json(result);
   } catch (e) {
     res.status(e.status || 500).json({ success: false, error: e.message, details: e.details || null });
@@ -61,7 +66,19 @@ router.get('/:slug/info', async (req, res) => {
 
 router.get('/tools', async (req, res) => {
   try {
-    const tools = await gatewayService.getTools();
+    let allowedSlugs = null;
+    // 如果携带了 API Key，则只返回该 key 被授权访问的服务
+    const apiKey = req.headers['x-api-key'] || req.query.api_key;
+    if (apiKey) {
+      const keyRec = await require('../database').db.apiKeys.findOne({ key: apiKey });
+      if (keyRec && !keyRec.disabled) {
+        if (keyRec.services && keyRec.services.length > 0) {
+          allowedSlugs = keyRec.services;
+        }
+        // services 为空或不存在 → 全部允许
+      }
+    }
+    const tools = await gatewayService.getTools(allowedSlugs);
     res.json({ success: true, data: tools });
   } catch (e) {
     res.status(500).json({ error: e.message });

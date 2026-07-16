@@ -4,6 +4,7 @@ const config = require('../config');
 const { generateApiKey, getCurrentMonth, isValidEmail, isStrongPassword, formatDateTime } = require('../utils/helpers');
 const { generateToken, auditLog } = require('../middleware/auth');
 const { auditLog: writeAudit } = require('../middleware/logger');
+const tierService = require('./tierService');
 
 const userService = {
   async register({ username, email, password }) {
@@ -15,8 +16,11 @@ const userService = {
     if (await db.users.findOne({ email: email.toLowerCase() })) throw { status: 409, message: '邮箱已注册' };
 
     const hash = await bcrypt.hash(password, config.bcryptSaltRounds);
+    // 如果有免费套餐，新用户自动分配；否则 tierIndex 为 -1（无套餐）
+    const freeIdx = await tierService.getFreeTierIndex();
     const user = await db.users.insert({
-      username: username.toLowerCase(), email: email.toLowerCase(), password: hash, role: 'user', tierIndex: 0,
+      username: username.toLowerCase(), email: email.toLowerCase(), password: hash, role: 'user',
+      tierIndex: freeIdx >= 0 ? freeIdx : -1,
       disabled: false, createdAt: Date.now(), updatedAt: Date.now(),
     });
 
@@ -51,7 +55,7 @@ const userService = {
 
   async getApiKeys(userId) {
     const keys = await db.apiKeys.find({ userId });
-    return keys.map(k => ({ id: k._id, name: k.name, key: k.key, disabled: k.disabled, createdAt: formatDateTime(k.createdAt) }));
+    return keys.map(k => ({ id: k._id, name: k.name, key: k.key, disabled: k.disabled, services: k.services || [], createdAt: formatDateTime(k.createdAt) }));
   },
 
   async createApiKey(userId, name = '') {
@@ -87,6 +91,13 @@ const userService = {
     if (!rec) throw { status: 404, message: 'API Key不存在' };
     await db.apiKeys.remove({ _id: keyId });
     return { message: '已删除' };
+  },
+
+  async setKeyServices(userId, keyId, services) {
+    const rec = await db.apiKeys.findOne({ _id: keyId, userId });
+    if (!rec) throw { status: 404, message: 'API Key不存在' };
+    await db.apiKeys.update({ _id: keyId }, { $set: { services: services || [] } });
+    return { message: '已更新', services: services || [] };
   },
 
   async changePassword(userId, oldPw, newPw) {

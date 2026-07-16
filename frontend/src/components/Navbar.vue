@@ -1,7 +1,7 @@
 <template>
   <nav class="nav"><div class="nav-inner">
-    <router-link to="/" class="brand">API Pool</router-link>
-    <div class="links" :class="{open:mo}">
+    <router-link to="/" class="brand">{{ siteName }}</router-link>
+    <div class="links" :class="{open:mo}" @click="mo=false">
       <router-link to="/docs">文档</router-link>
       <router-link to="/tools">工具中心</router-link>
       <router-link to="/test" class="hl">⚡ 测试</router-link>
@@ -36,8 +36,12 @@
   </div></nav>
 </template>
 <script setup>
-import { ref } from 'vue'; import { useRouter } from 'vue-router'; import { useAuthStore } from '@/stores/auth'
+import { ref, onMounted } from 'vue'; import { useRouter } from 'vue-router'; import { useAuthStore } from '@/stores/auth'; import { get } from '@/api/client'
 const a = useAuthStore(); const r = useRouter(); const mo = ref(false)
+const siteName = ref('API Pool')
+onMounted(async () => {
+  try { const r = await get('/api/site-info'); siteName.value = r.data.data.name } catch {}
+})
 function logout() { a.logout(); mo.value = false; r.push('/') }
 </script>
 <style scoped>
@@ -54,5 +58,5 @@ function logout() { a.logout(); mo.value = false; r.push('/') }
 .un{font-weight:600}.rb{font-size:.65rem;padding:2px 7px;border-radius:10px;background:#4f46e5;color:#fff}.rb.admin{background:#ef4444}
 .mt{display:none;flex-direction:column;gap:4px;background:none;border:none;cursor:pointer;padding:4px}
 .mt span{width:22px;height:2px;background:#64748b;border-radius:1px}
-@media(max-width:900px){.links{display:none;position:absolute;top:60px;left:0;right:0;background:#fff;flex-direction:column;padding:12px;border-bottom:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.08);margin-left:0;gap:2px}.links.open{display:flex}.mt{display:flex}}
+@media(max-width:900px){.links{display:flex;position:absolute;top:60px;left:0;right:0;background:#fff;flex-direction:column;padding:0 12px;border-bottom:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.08);margin-left:0;gap:2px;max-height:0;overflow:hidden;opacity:0;transition:max-height .3s ease,opacity .25s ease,padding .3s ease}.links.open{max-height:calc(100vh - 70px);overflow-y:auto;padding:12px;opacity:1}.mt{display:flex}}
 </style>

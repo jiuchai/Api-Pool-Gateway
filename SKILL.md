@@ -6,7 +6,7 @@
 {BASE_URL}
 ```
 
-Default: `http://localhost:3002` — replace with the actual deployed domain.
+Default: `http://localhost:8080` — replace with the actual deployed domain.
 
 ***
 

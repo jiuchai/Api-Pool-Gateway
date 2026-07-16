@@ -8,11 +8,12 @@ router.use(jwtAuth);
 
 router.get('/', async (req, res) => {
   try {
-    const { page, pageSize, method, statusCode, startTime, endTime, serviceSlug } = req.query;
+    const { page, pageSize, method, statusCode, startTime, endTime, serviceSlug, apiKeyName } = req.query;
     const p = parseInt(page) || 1;
     const ps = Math.min(parseInt(pageSize) || 50, 100);
     const query = { userId: req.user._id };
     if (serviceSlug) query.serviceSlug = serviceSlug;
+    if (apiKeyName) query.apiKeyName = new RegExp(apiKeyName, 'i');
     if (method) query.method = method.toUpperCase();
     if (statusCode) {
       // 支持 "4xx,5xx" 逗号分隔格式

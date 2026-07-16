@@ -40,8 +40,10 @@ cd Api-Pool-Gateway
 cp .env.example .env          # 编辑 .env 设置你自己的配置
 
 docker-compose up -d
-# 打开 http://localhost:3002
+# 打开 http://localhost:8080（通过 Nginx）
 ```
+
+> 默认通过 Nginx 反向代理访问，端口为 `8080`。应用容器内部运行在 `3000` 端口，不会对外暴露，除非在 `.env` 中设置 `EXPOSE_API_PORT=true`。
 
 所有环境变量自动从 `.env` 文件读取。
 
@@ -49,7 +51,7 @@ docker-compose up -d
 
 #### 修改前端后重新构建
 
-改了前端代码，想让 Docker 重新编译前端：
+改了前端代码，想在 Docker 重新编译前端，在 `.env` 中设置 `BUILD_FRONTEND=true` 然后重建：
 
 ```bash
 BUILD_FRONTEND=true docker-compose up -d --build
@@ -61,7 +63,7 @@ BUILD_FRONTEND=true docker-compose up -d --build
 # 环境要求：Node.js >= 18, npm >= 9
 npm install && cd frontend && npm install && cd ..
 npm run dev:all
-# 后端 → http://localhost:3002
+# 后端 → http://localhost:3000
 # 前端开发服务器 → http://localhost:5174
 ```
 
@@ -77,13 +79,15 @@ npm run dev:all
 
 ### 环境变量
 
-| 变量            | 说明             | 默认值               |
-| --------------- | ---------------- | -------------------- |
-| `PORT`          | 服务器端口       | `3002`               |
-| `JWT_SECRET`    | JWT签名密钥      | （必填）             |
-| `ADMIN_USERNAME`| 管理员用户名     | `admin`              |
-| `ADMIN_EMAIL`   | 管理员邮箱       | `admin@pool.com`     |
-| `ADMIN_PASSWORD`| 管理员密码       | `Admin@123456`       |
+| 变量             | 说明                                | 默认值               |
+| ---------------- | ----------------------------------- | -------------------- |
+| `PORT`           | 应用内部端口                        | `3000`               |
+| `JWT_SECRET`     | JWT签名密钥                         | （必填）             |
+| `ADMIN_USERNAME` | 管理员用户名                        | `admin`              |
+| `ADMIN_EMAIL`    | 管理员邮箱                          | `admin@pool.com`     |
+| `ADMIN_PASSWORD` | 管理员密码                          | `Admin@123456`       |
+| `NGINX_PORT`     | Nginx 对外端口（Web + API）         | `8080`               |
+| `BUILD_FRONTEND` | 在 Docker 中从源码重新构建前端      | `false`              |
 
 ### 项目结构
 
@@ -102,6 +106,7 @@ npm run dev:all
 │   └── redeem.js       # 兑换码
 ├── services/           # 业务逻辑层
 ├── utils/              # 工具函数
+├── nginx/              # Nginx 反向代理配置
 ├── frontend/           # Vue 3 前端
 │   ├── src/
 │   │   ├── views/      # 页面组件

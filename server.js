@@ -6,6 +6,10 @@ const compression = require('compression');
 const morgan = require('morgan');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const fileLogger = require('./utils/fileLogger');
+
+// 初始化文件日志（console.log/error/warn 会自动同步写入文件）
+fileLogger.setup();
 
 const config = require('./config');
 const { db, ensureIndexes } = require('./database');
@@ -17,10 +21,34 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'] }));
 app.use(compression());
+// 访问日志 → 控制台 + 文件
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+app.use(morgan('[:date[iso]] :method :url :status :response-time ms', { stream: fileLogger.accessLogStream }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/api/downloads', express.static(path.join(__dirname, 'downloads')));
+
+// 定时清理下载文件（30分钟过期）
+const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
+if (!require('fs').existsSync(DOWNLOADS_DIR)) require('fs').mkdirSync(DOWNLOADS_DIR, { recursive: true });
+setInterval(() => {
+  const fs = require('fs');
+  const now = Date.now();
+  const maxAge = 30 * 60 * 1000; // 30分钟
+  fs.readdir(DOWNLOADS_DIR, (err, files) => {
+    if (err) return;
+    files.forEach(file => {
+      const filePath = path.join(DOWNLOADS_DIR, file);
+      fs.stat(filePath, (err, stat) => {
+        if (err) return;
+        if (now - stat.mtimeMs > maxAge) {
+          fs.unlink(filePath, () => {});
+        }
+      });
+    });
+  });
+}, 60 * 1000); // 每分钟检查一次
 
 // 路由
 app.use('/api/auth', require('./routes/auth'));
@@ -50,6 +78,15 @@ app.get('/api/notices', async (req, res) => {
   try {
     const notices = await noticeService.getPublishedNotices();
     res.json({ success: true, data: notices });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 公开站点信息（首页标题/描述）
+const settingsService = require('./services/settingsService');
+app.get('/api/site-info', async (req, res) => {
+  try {
+    const settings = await settingsService.getSettings();
+    res.json({ success: true, data: { name: settings.siteName, title: settings.siteTitle, description: settings.siteDescription, paymentUrl: settings.paymentUrl } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -88,6 +125,10 @@ async function init() {
     try { await db.rateLimit.remove({ timestamp: { $lt: Date.now() - 86400000 } }, { multi: true }); } catch {}
   }, 3600000);
 }
+
+// 支付回调（挂载在 /pay，nginx 不代理此路径，仅内网可访问）
+const { paymentWebhook } = require('./routes/billing');
+app.post('/pay', paymentWebhook);
 
 init().then(() => {
   app.listen(config.port, () => {

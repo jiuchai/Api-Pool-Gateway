@@ -30,4 +30,13 @@ router.delete('/:id', async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 设置 Key 授权的服务列表
+router.put('/:id/services', async (req, res) => {
+  try {
+    const { services } = req.body; // services: string[] (slugs), 空数组=全部
+    const r = await userService.setKeyServices(req.user._id, req.params.id, services);
+    res.json({ success: true, data: r });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
 module.exports = router;

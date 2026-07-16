@@ -42,7 +42,7 @@ RUN if [ "$BUILD_FRONTEND" = "true" ]; then \
     fi && \
     rm -rf /tmp/frontend-dist /tmp/public-prebuilt
 
-RUN mkdir -p /app/data
+RUN mkdir -p /app/downloads
 
-EXPOSE 3002
+EXPOSE 3000
 CMD ["node", "server.js"]

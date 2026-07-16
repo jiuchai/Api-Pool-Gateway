@@ -2,6 +2,9 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 data/
+mongo-data/
+downloads/
+logs/
 .env
 *.log
 .DS_Store

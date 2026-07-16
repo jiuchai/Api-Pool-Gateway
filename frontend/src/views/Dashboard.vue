@@ -3,23 +3,24 @@
     <h1 class="page-title">控制台</h1>
     <div v-if="loading" class="loading">加载中...</div>
     <template v-else-if="data">
+      <div style="flex:1;overflow-y:auto;min-height:0">
       <!-- 当前套餐 -->
       <div class="tier-card card" v-if="usage">
         <div class="tier-card-header">
           <div>
-            <div class="tier-name">{{ usage.tier.name }}</div>
-            <div class="tier-limit">{{ usage.tier.ratePerSecond }} 次/秒 · 日上限 {{ usage.tier.maxCallsPerDay === -1 ? '不限' : usage.tier.maxCallsPerDay.toLocaleString() }}</div>
+            <div class="tier-name">{{ usage.currentTier?.name || usage.tier.name }}</div>
+            <div class="tier-limit">{{ usage.currentTier?.ratePerSecond || usage.tier.ratePerSecond }} 次/秒 · 日上限 {{ (usage.currentTier?.maxCallsPerDay ?? usage.tier.maxCallsPerDay) === -1 ? '不限' : (usage.currentTier?.maxCallsPerDay ?? usage.tier.maxCallsPerDay).toLocaleString() }}</div>
             <div v-if="usage.tier.subscriptions?.length" class="tier-expires">
               有效期至：<strong>{{ latestExpire }}</strong>
               <span v-if="usage.tier.subscriptions.length > 1" class="sub-count">（{{ usage.tier.subscriptions.length }} 个有效订阅）</span>
             </div>
           </div>
           <div class="tier-actions">
-            <div class="tier-fee">¥{{ usage.tier.monthlyFee }}<span>/月</span></div>
+            <div class="tier-fee">¥{{ usage.currentTier?.monthlyFee ?? usage.tier.monthlyFee }}<span>/月</span></div>
             <div class="tier-switch">
               <el-select v-model="activeSubId" size="small" style="width:140px" placeholder="切换套餐" @change="switchActiveTier">
                 <el-option v-if="usage.tier.subscriptions?.length" v-for="s in usage.tier.subscriptions" :key="s.id" :label="s.name" :value="s.id" />
-                <el-option label="免费版" value="free" />
+                <el-option v-if="usage.freeTierIndex !== null && usage.freeTierIndex !== undefined" label="免费版" value="free" />
               </el-select>
               <el-button type="primary" size="small" @click="goPlans">购买套餐</el-button>
             </div>
@@ -27,10 +28,27 @@
         </div>
         <div class="tier-progress-row">
           <div class="tier-progress-label">
-            <span>今日用量</span>
-            <span>{{ usage.todayCalls?.toLocaleString() || usage.callCount?.toLocaleString() || 0 }} / {{ usage.tier.maxCallsPerDay === -1 ? '不限' : usage.tier.maxCallsPerDay.toLocaleString() }}</span>
+            <span>今日用量（{{ usage.currentTier?.name || '当前套餐' }}）</span>
+            <span>{{ usage.todayCalls?.toLocaleString() || 0 }} / {{ (usage.currentTier?.maxCallsPerDay ?? usage.tier.maxCallsPerDay) === -1 ? '不限' : (usage.currentTier?.maxCallsPerDay ?? usage.tier.maxCallsPerDay).toLocaleString() }}</span>
           </div>
           <el-progress :percentage="usagePercent" :status="usageStatus" :stroke-width="14" />
+        </div>
+        <div v-if="usageExhausted" class="exhausted-hint">
+          当前套餐今日额度已用完，可切换到其他可用套餐继续使用
+        </div>
+        <!-- 可选套餐列表 -->
+        <div v-if="usage.tier.subscriptions?.length" class="sub-list">
+          <div class="sub-list-title">可切换套餐（各套餐每日额度独立）</div>
+          <div class="sub-item" v-for="s in usage.tier.subscriptions" :key="s.id" :class="{ active: activeSubId === s.id }" @click="switchActiveTier(s.id)">
+            <span class="sub-name">{{ s.name }}</span>
+            <span class="sub-limit">日上限 {{ s.maxCallsPerDay === -1 ? '不限' : s.maxCallsPerDay.toLocaleString() }} 次</span>
+            <span class="sub-rate">{{ s.ratePerSecond }}次/秒</span>
+          </div>
+          <div v-if="usage.freeTierIndex !== null && usage.freeTierIndex !== undefined" class="sub-item" :class="{ active: activeSubId === 'free' }" @click="switchActiveTier('free')">
+            <span class="sub-name">免费版</span>
+            <span class="sub-limit">日上限 {{ getFreeLimit() }} 次</span>
+            <span class="sub-rate">{{ getFreeRate() }}次/秒</span>
+          </div>
         </div>
       </div>
 
@@ -78,6 +96,7 @@
           <div v-else class="text-muted" style="text-align:center;padding:20px">暂无调用记录</div>
         </div>
       </div>
+      </div>
     </template>
   </div>
 </template>
@@ -108,11 +127,14 @@ function goPlans() { router.push('/plans') }
 async function switchActiveTier(subId) {
   try {
     if (subId === 'free') {
-      await put('/api/billing/active-subscription', { tierIndex: 0 })
+      const idx = usage.value?.freeTierIndex
+      if (idx === null || idx === undefined) { toast.error('无可用免费套餐'); return }
+      await put('/api/billing/active-subscription', { tierIndex: idx })
     } else {
       await put('/api/billing/active-subscription', { subscriptionId: subId })
     }
     toast.success('已切换当前套餐')
+    activeSubId.value = subId
     await load()
   } catch (e) { toast.error(e.message || '切换失败') }
 }
@@ -128,10 +150,12 @@ async function load() {
     usage.value = usageRes.data.data
     // 仅在首次加载时设置当前选中的套餐
     if (!activeSubId.value) {
-      if (usageRes.data.data.activeTierIndex === 0) {
+      const freeIdx = usageRes.data.data.freeTierIndex
+      if (freeIdx !== null && usageRes.data.data.activeTierIndex === freeIdx) {
         activeSubId.value = 'free'
       } else if (usage.value?.tier?.subscriptions?.length) {
-        activeSubId.value = usage.value.tier.subscriptions[0].id
+        const matched = usage.value.tier.subscriptions.find(s => s.tierIndex === usageRes.data.data.activeTierIndex)
+        activeSubId.value = matched ? matched.id : usage.value.tier.subscriptions[0].id
       }
     }
   } catch (e) { toast.error(e.message || '获取数据失败') }
@@ -139,9 +163,11 @@ async function load() {
 }
 
 const usagePercent = computed(() => {
-  if (!usage.value || usage.value.tier.maxCallsPerDay === -1) return 0
-  const today = usage.value.todayCalls || usage.value.callCount || 0
-  const pct = Math.round((today / usage.value.tier.maxCallsPerDay) * 100)
+  if (!usage.value) return 0
+  const limit = usage.value.currentTier?.maxCallsPerDay ?? usage.value.tier.maxCallsPerDay
+  if (limit === -1) return 0
+  const today = usage.value.todayCalls || 0
+  const pct = Math.round((today / limit) * 100)
   return Math.min(pct, 100)
 })
 const usageStatus = computed(() => {
@@ -151,6 +177,11 @@ const usageStatus = computed(() => {
   if (pct >= 80) return 'warning'
   return 'success'
 })
+const usageExhausted = computed(() => {
+  return usagePercent.value >= 100 && usage.value?.tier?.subscriptions?.length > 0
+})
+function getFreeLimit() { return usage.value?.freeTier?.maxCallsPerDay?.toLocaleString() || '0' }
+function getFreeRate() { return usage.value?.freeTier?.ratePerSecond || '0' }
 
 const chartData = computed(() => {
   if (!data.value?.dailyData?.length) return { labels: ['暂无'], datasets: [{ label: '调用次数', data: [0], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#4f46e5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7 }] }
@@ -168,8 +199,8 @@ onMounted(load)
 </script>
 
 <style scoped>
-.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-.page-title { font-size: 1.5rem; margin-bottom: 24px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.page-title { font-size: 1.5rem; margin-bottom: 24px; flex-shrink: 0; }
 .loading { text-align: center; padding: 60px; color: #94a3b8; }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
@@ -207,4 +238,13 @@ onMounted(load)
 .tier-fee span { font-size: 0.85rem; color: #94a3b8; font-weight: 400; }
 .tier-switch { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .tier-progress-label { display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 8px; }
+.exhausted-hint { margin-top: 14px; padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; font-size: 0.85rem; }
+.sub-list { margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 14px; }
+.sub-list-title { font-size: 0.78rem; color: #94a3b8; margin-bottom: 10px; }
+.sub-item { display: flex; align-items: center; gap: 16px; padding: 10px 14px; border-radius: 8px; cursor: pointer; transition: background .2s; font-size: 0.85rem; }
+.sub-item:hover { background: #f8fafc; }
+.sub-item.active { background: #eef2ff; border: 1px solid #c7d2fe; }
+.sub-name { font-weight: 600; min-width: 80px; }
+.sub-limit { color: #64748b; flex: 1; }
+.sub-rate { color: #4f46e5; font-weight: 500; }
 </style>

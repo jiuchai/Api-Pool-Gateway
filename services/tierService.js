@@ -15,6 +15,9 @@ const tierService = {
       maxCallsPerDay: t.maxCallsPerDay,
       monthlyFee: t.monthlyFee,
       order: t.order,
+      description: t.description || '',
+      features: t.features || [],
+      onSale: t.onSale !== undefined ? t.onSale : true,
     }));
   },
 
@@ -27,6 +30,19 @@ const tierService = {
   async getTierByIndex(index) {
     const tiers = await this._getRawTiers();
     return tiers[index] || tiers[0] || null;
+  },
+
+  /** 获取免费套餐（monthlyFee === 0 的第一个），没有则返回 null */
+  async getFreeTier() {
+    const tiers = await this._getRawTiers();
+    return tiers.find(t => t.monthlyFee === 0) || null;
+  },
+
+  /** 获取免费套餐的索引，没有则返回 -1 */
+  async getFreeTierIndex() {
+    const tiers = await this._getRawTiers();
+    const idx = tiers.findIndex(t => t.monthlyFee === 0);
+    return idx;
   },
 
   /** 获取套餐数量 */
@@ -42,6 +58,9 @@ const tierService = {
       ratePerSecond: Number(data.ratePerSecond) || 10,
       maxCallsPerDay: data.maxCallsPerDay !== undefined ? Number(data.maxCallsPerDay) : -1,
       monthlyFee: Number(data.monthlyFee) || 0,
+      description: data.description || '',
+      features: data.features || [],
+      onSale: data.onSale !== undefined ? data.onSale : true,
       order: count,
       createdAt: Date.now(),
     });
@@ -57,6 +76,9 @@ const tierService = {
       ratePerSecond: data.ratePerSecond !== undefined ? Number(data.ratePerSecond) : tier.ratePerSecond,
       maxCallsPerDay: data.maxCallsPerDay !== undefined ? Number(data.maxCallsPerDay) : tier.maxCallsPerDay,
       monthlyFee: data.monthlyFee !== undefined ? Number(data.monthlyFee) : tier.monthlyFee,
+      description: data.description !== undefined ? data.description : tier.description,
+      features: data.features !== undefined ? data.features : tier.features,
+      onSale: data.onSale !== undefined ? data.onSale : tier.onSale,
       updatedAt: Date.now(),
     } });
     return await db.tiers.findOne({ _id: id });
@@ -88,6 +110,9 @@ const tierService = {
         ratePerSecond: Number(t.ratePerSecond) || 10,
         maxCallsPerDay: t.maxCallsPerDay !== undefined ? Number(t.maxCallsPerDay) : -1,
         monthlyFee: Number(t.monthlyFee) || 0,
+        description: t.description || '',
+        features: t.features || [],
+        onSale: t.onSale !== undefined ? t.onSale : true,
         order: i,
         createdAt: Date.now(),
       });
@@ -106,6 +131,9 @@ const tierService = {
           ratePerSecond: defaults[i].ratePerSecond,
           maxCallsPerDay: defaults[i].maxCallsPerDay,
           monthlyFee: defaults[i].monthlyFee,
+          description: defaults[i].description || '',
+          features: defaults[i].features || [],
+          onSale: defaults[i].onSale !== undefined ? defaults[i].onSale : true,
           order: i,
           createdAt: Date.now(),
         });

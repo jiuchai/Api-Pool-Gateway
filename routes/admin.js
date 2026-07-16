@@ -145,11 +145,13 @@ router.put('/users/:id', async (req, res) => {
 // ===== 日志 =====
 router.get('/logs', async (req, res) => {
   try {
-    const { page, pageSize, username, method, statusCode, startTime, endTime, serviceSlug } = req.query;
+    const { page, pageSize, username, email, apiKeyName, method, statusCode, startTime, endTime, serviceSlug } = req.query;
     const p = parseInt(page) || 1;
     const ps = Math.min(parseInt(pageSize) || 50, 200);
     const query = {};
-    if (username) query.username = username;
+    if (username) query.username = new RegExp(username, 'i');
+    if (email) query.email = new RegExp(email, 'i');
+    if (apiKeyName) query.apiKeyName = new RegExp(apiKeyName, 'i');
     if (serviceSlug) query.serviceSlug = serviceSlug;
     if (method) query.method = method.toUpperCase();
     if (statusCode) {
@@ -368,6 +370,7 @@ router.get('/redeem-usage', async (req, res) => {
 
 // ===== 公告管理 =====
 const noticeService = require('../services/noticeService');
+const settingsService = require('../services/settingsService');
 
 router.get('/notices', async (req, res) => {
   try {
@@ -398,6 +401,22 @@ router.delete('/notices/:id', async (req, res) => {
     await auditLog('notice_deleted', { id: req.params.id });
     res.json({ success: true, data: { message: '已删除' } });
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+// ===== 站点设置 =====
+router.get('/settings', async (req, res) => {
+  try {
+    const settings = await settingsService.getSettings();
+    res.json({ success: true, data: settings });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/settings', async (req, res) => {
+  try {
+    const settings = await settingsService.saveSettings(req.body);
+    await auditLog('settings_updated', { ...req.body });
+    res.json({ success: true, data: settings });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

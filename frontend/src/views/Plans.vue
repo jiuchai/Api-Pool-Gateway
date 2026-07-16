@@ -33,20 +33,40 @@
           <div class="plan-card-limit">{{ t.ratePerSecond }} 次/秒</div>
         </div>
         <div class="plan-card-body">
+          <p v-if="t.description" class="plan-desc">{{ t.description }}</p>
           <ul class="plan-features">
-            <li><span class="check">&#10003;</span> 每日调用 <strong>{{ t.maxCallsPerDay === -1 ? '不限' : t.maxCallsPerDay.toLocaleString() + ' 次' }}</strong></li>
-            <li><span class="check">&#10003;</span> 月费固定，无额外费用</li>
-            <li><span class="check">&#10003;</span> 全部API服务通用</li>
-            <li><span class="check">&#10003;</span> API Key 认证访问</li>
-            <li v-if="t.monthlyFee > 0"><span class="check">&#10003;</span> 优先技术支持</li>
+            <li v-for="(f, i) in (t.features && t.features.length ? t.features : defaultFeatures(t))" :key="i">
+              <span class="check">&#10003;</span> {{ f }}
+            </li>
           </ul>
         </div>
         <div class="plan-card-footer">
-          <el-button v-if="t.monthlyFee === 0" type="info" disabled style="width:100%">免费套餐</el-button>
-          <el-button v-else type="primary" style="width:100%" :loading="loadingIndex === t.index" @click="purchase(t)">
-            {{ isSubscribed(t.index) ? '续订一个月' : '购买此套餐' }}
+          <el-button v-if="!t.onSale" type="warning" disabled style="width:100%">等待开售</el-button>
+          <el-button v-else-if="t.monthlyFee === 0" type="info" disabled style="width:100%">免费套餐</el-button>
+          <el-button v-else type="primary" style="width:100%" @click="purchase(t)">
+            {{ isSubscribed(t.index) ? '续订一个月' : '去支付' }}
           </el-button>
         </div>
+      </div>
+    </div>
+
+    <!-- 购买说明 -->
+    <div v-if="paymentUrl" class="card purchase-guide">
+      <div class="card-header"><h3>购买流程</h3></div>
+      <div class="card-body">
+        <ol class="guide-steps">
+          <li>点击套餐下方「去支付」按钮，系统会生成一个一次性支付凭证（30分钟有效）</li>
+          <li>跳转到支付页面（仅携带 <code>token</code>，不暴露用户信息）</li>
+          <li>支付完成后，支付系统回调 <code>POST /api/billing/payment-webhook</code></li>
+          <li>回调参数：<code>&#123; secret, token &#125;</code>，服务端验证 token 后开通套餐</li>
+          <li>同一 token 只能使用一次，过期自动失效</li>
+        </ol>
+      </div>
+    </div>
+    <div v-else class="card purchase-guide" style="margin-top:24px">
+      <div class="card-header"><h3>购买说明</h3></div>
+      <div class="card-body">
+        <p style="color:#64748b;font-size:.85rem">管理员暂未配置支付跳转地址，购买后直接开通。如需接入外部支付，请在管理后台「服务管理 → 设置」中配置支付跳转地址和回调密钥。</p>
       </div>
     </div>
   </div>
@@ -60,16 +80,18 @@ import { useToastStore } from '@/stores/toast'
 const toast = useToastStore()
 const tiers = ref([])
 const subscriptions = ref([])
-const loadingIndex = ref(null)
+const paymentUrl = ref('')
 
 async function loadData() {
   try {
-    const [tiersRes, subsRes] = await Promise.all([
+    const [tiersRes, subsRes, siteRes] = await Promise.all([
       get('/api/billing/tiers'),
-      get('/api/billing/subscriptions')
+      get('/api/billing/subscriptions'),
+      get('/api/site-info')
     ])
     tiers.value = tiersRes.data.data.tiers
     subscriptions.value = subsRes.data.data
+    paymentUrl.value = siteRes.data.data.paymentUrl || ''
   } catch (e) { toast.error('加载套餐失败') }
 }
 
@@ -77,25 +99,41 @@ function isSubscribed(index) {
   return subscriptions.value.some(s => s.tierIndex === index)
 }
 
+function defaultFeatures(t) {
+  const f = [`每日调用 ${t.maxCallsPerDay === -1 ? '不限' : t.maxCallsPerDay.toLocaleString() + ' 次'}`, '全部 API 服务通用', 'API Key 认证访问']
+  if (t.monthlyFee > 0) f.push('优先技术支持')
+  return f
+}
+
 async function purchase(t) {
-  loadingIndex.value = t.index
+  // 如果配置了支付跳转地址，先创建支付凭证再跳转
+  if (paymentUrl.value) {
+    try {
+      const res = await post('/api/billing/create-payment', { tierIndex: t.index, durationDays: 30 })
+      const token = res.data.data.token
+      const url = `${paymentUrl.value}${paymentUrl.value.includes('?') ? '&' : '?'}token=${token}`
+      window.open(url, '_blank')
+      toast.info('已跳转到支付页面，支付完成后将自动开通')
+    } catch (e) { toast.error(e.message || '创建支付失败') }
+    return
+  }
+  // 没有配置支付地址，直接开通
   try {
     const res = await post('/api/billing/subscribe', { tierIndex: t.index, durationDays: 30 })
     toast.success(res.data.data.message)
     await loadData()
   } catch (e) { toast.error(e.message || '购买失败') }
-  finally { loadingIndex.value = null }
 }
 
 onMounted(loadData)
 </script>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
-.page-header { text-align: center; margin-bottom: 36px; }
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.page-header { text-align: center; margin-bottom: 36px; flex-shrink: 0; }
 .page-title { font-size: 1.75rem; margin-bottom: 6px; }
 .page-subtitle { color: #64748b; font-size: 0.95rem; }
-.current-subs { margin-bottom: 24px; }
+.current-subs { margin-bottom: 24px; flex-shrink: 0; }
 .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 .card-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
 .card-header h3 { font-size: 1rem; }
@@ -115,8 +153,13 @@ onMounted(loadData)
 .period { font-size: 0.85rem; color: #94a3b8; }
 .plan-card-limit { margin-top: 8px; padding: 4px 12px; background: #fff7ed; color: #c2410c; border-radius: 8px; font-size: 0.78rem; font-weight: 600; display: inline-block; }
 .plan-card-body { padding: 20px 24px; flex: 1; }
+.plan-desc { color: #64748b; font-size: 0.82rem; margin: 0 0 14px; line-height: 1.5; }
 .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
 .plan-features li { font-size: 0.85rem; color: #475569; display: flex; align-items: flex-start; gap: 8px; }
 .check { color: #10b981; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
 .plan-card-footer { padding: 0 24px 24px; }
+.purchase-guide { margin-top: 32px; }
+.guide-steps { padding-left: 20px; }
+.guide-steps li { font-size: .85rem; color: #475569; margin-bottom: 8px; line-height: 1.6; }
+.guide-steps code { font-size: .78rem; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; color: #e11d48; }
 </style>

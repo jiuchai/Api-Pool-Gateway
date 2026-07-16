@@ -44,16 +44,10 @@
           <span class="method-badge">POST</span>
           <code>{{ tool.endpoint }}</code>
         </div>
-        <div class="tool-curl">
-          <div class="curl-label">cURL 示例</div>
-          <pre><code>curl -X POST {{ baseUrl }}{{ tool.endpoint }} \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_API_KEY" \
-  -d '{{ (tool.input_example || '{}').replace(/\n/g, '\\n').replace(/'/g, "'\\''") }}'</code></pre>
-        </div>
         <div class="tool-actions">
           <router-link :to="'/test?service='+tool.slug" class="btn btn-secondary btn-sm">在线测试</router-link>
           <button class="btn btn-primary btn-sm" @click="copyEndpoint(tool)">复制调用地址</button>
+          <a v-if="tool.welcomeUrl" :href="tool.welcomeUrl" target="_blank" class="btn btn-online btn-sm">在线使用</a>
         </div>
       </div>
     </div>
@@ -73,7 +67,6 @@ const toast = useToastStore()
 const tools = ref([])
 const search = ref('')
 const selectedCategory = ref('')
-const baseUrl = window.location.origin
 
 const categories = computed(() => {
   const cats = new Set(tools.value.map(t => t.category))
@@ -134,10 +127,8 @@ onMounted(async () => {
 .btn-primary:hover{background:#4338ca}
 .btn-secondary{background:#fff;color:#64748b;border:1px solid #e2e8f0}
 .btn-secondary:hover{background:#f1f5f9}
-.tool-curl{margin:0 12px 10px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
-.curl-label{padding:5px 12px;background:#f1f5f9;font-size:.7rem;font-weight:600;color:#64748b}
-.tool-curl pre{margin:0;padding:10px 12px;border-radius:0;background:#1e293b;color:#e2e8f0;font-size:.75rem;line-height:1.6;max-height:150px;overflow:auto}
-.tool-curl code{font-family:'Consolas',monospace;background:none;padding:0;font-size:inherit;color:inherit}
+.btn-online{background:#10b981;color:#fff;padding:6px 12px;border:none;border-radius:6px;font-size:.8rem;font-weight:500;cursor:pointer;text-decoration:none;transition:all .15s}
+.btn-online:hover{background:#059669}
 .empty-state{text-align:center;padding:60px;color:#94a3b8}
 .empty-state p{font-size:.95rem}
 @media(max-width:768px){

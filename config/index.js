@@ -16,10 +16,10 @@ module.exports = {
   billing: {
     defaultTierIndex: 0,
     tiers: [
-      { name: '免费档', ratePerSecond: 5, maxCallsPerDay: 100, monthlyFee: 0 },
-      { name: '基础档', ratePerSecond: 20, maxCallsPerDay: 5000, monthlyFee: 29 },
-      { name: '专业档', ratePerSecond: 50, maxCallsPerDay: 20000, monthlyFee: 99 },
-      { name: '企业档', ratePerSecond: 100, maxCallsPerDay: -1, monthlyFee: 299 },
+      { name: '免费档', ratePerSecond: 5, maxCallsPerDay: 100, monthlyFee: 0, onSale: true, description: '适合个人开发者和小型项目入门使用', features: ['每日 100 次调用', '全部 API 服务可用', 'API Key 认证', '基础速率限制'] },
+      { name: '基础档', ratePerSecond: 20, maxCallsPerDay: 5000, monthlyFee: 29, onSale: true, description: '适合初创团队和中小型应用', features: ['每日 5,000 次调用', '全部 API 服务可用', 'API Key 认证', '更高并发速率', '邮件技术支持'] },
+      { name: '专业档', ratePerSecond: 50, maxCallsPerDay: 20000, monthlyFee: 99, onSale: true, description: '适合成长型业务和 API 密集场景', features: ['每日 20,000 次调用', '全部 API 服务可用', 'API Key 认证', '高并发速率', '优先技术支持'] },
+      { name: '企业档', ratePerSecond: 100, maxCallsPerDay: -1, monthlyFee: 299, onSale: false, description: '适合大规模企业和定制化需求', features: ['无限次调用', '全部 API 服务可用', 'API Key 认证', '最高并发速率', '专属技术支持', 'SLA 保障'] },
     ],
   },
   defaultServices: [

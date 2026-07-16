@@ -4,8 +4,16 @@
  */
 const axios = require('axios');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const config = require('../config');
 const { validateParams } = require('../utils/helpers');
+
+const DOWNLOADS_DIR = path.join(__dirname, '..', 'downloads');
+
+// 确保下载目录存在
+if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
 const gatewayService = {
   /**
@@ -34,17 +42,16 @@ const gatewayService = {
   /**
    * 根据slug查找并执行转发
    */
-  async executeService(slug, params, reqHeaders) {
+  async executeService(slug, params, reqHeaders, baseUrl) {
     const service = await require('../database').db.services.findOne({ slug, enabled: true });
     if (!service) throw { status: 404, message: `服务 "${slug}" 不存在或已禁用` };
 
-    // 只要参数中有 file 类型，自动按 form-data 转发
-    const hasFileParams = service.params && service.params.some(p => p.type === 'file' || p.type === 'file list');
+    const hasFileParams = service.params && service.params.some(p => p.type === 'file' || p.type === 'files');
     const forceFormData = service.forwardType === 'form-data' || hasFileParams;
 
     const hasFiles = params && Object.values(params).some(v => {
-      if (Array.isArray(v)) return v.some(item => item && item.path && item.originalname);
-      return v && v.path && v.originalname;
+      if (Array.isArray(v)) return v.some(item => item && (item.path || item.filename || item.buffer) && item.originalname);
+      return v && (v.path || v.filename || v.buffer) && v.originalname;
     });
 
     if (!hasFiles && service.params && service.params.length) {
@@ -55,7 +62,7 @@ const gatewayService = {
     // 缺少必填文件时，不论转发方式都需要拦截
     if (!hasFiles) {
       const requiredFileParams = (service.params || []).filter(p =>
-        (p.type === 'file' || p.type === 'file list') && p.required
+        (p.type === 'file' || p.type === 'files') && p.required
       );
       if (requiredFileParams.length > 0) {
         const receivedKeys = params ? Object.keys(params).join(', ') : '无';
@@ -83,14 +90,16 @@ const gatewayService = {
       for (const [key, val] of Object.entries(params)) {
         if (Array.isArray(val)) {
           val.forEach(item => {
-            if (item && typeof item === 'object' && item.path) {
-              form.append(key, require('fs').createReadStream(item.path), { filename: item.originalname });
+            if (item && typeof item === 'object' && (item.path || item.filename || item.buffer) && item.originalname) {
+              const src = item.path ? require('fs').createReadStream(item.path) : Buffer.from(item.buffer);
+              form.append(key, src, { filename: item.originalname });
             } else {
               form.append(key, String(item));
             }
           });
-        } else if (val && typeof val === 'object' && val.path) {
-          form.append(key, require('fs').createReadStream(val.path), { filename: val.originalname });
+        } else if (val && typeof val === 'object' && (val.path || val.filename || val.buffer) && val.originalname) {
+          const src = val.path ? require('fs').createReadStream(val.path) : Buffer.from(val.buffer);
+          form.append(key, src, { filename: val.originalname });
         } else if (service.bodyTemplate && !forceFormData) {
           let valStr = String(val);
           if (service.bodyTemplate.includes(`{{${key}}}`)) {
@@ -180,13 +189,70 @@ const gatewayService = {
         params: service.method === 'GET' || service.method === 'DELETE' ? params : undefined,
         timeout: service.timeout || config.proxy.timeout,
         validateStatus: () => true,
-        responseType: 'text',
-        transformResponse: [(d) => d],
+        responseType: 'arraybuffer',
         maxRedirects: 5,
       });
 
-      let body = response.data;
-      if (typeof body === 'string' && body.trim()) {
+      const contentType = (response.headers['content-type'] || '').toLowerCase();
+      const isJson = contentType.includes('application/json') || contentType.includes('text/');
+      const isBinary = !isJson && response.data && Buffer.isBuffer(response.data) && response.data.length > 0;
+
+      if (isBinary) {
+        // 提取文件扩展名
+        let ext = '.bin';
+        const extMatch = contentType.match(/[\w-]+\/([\w+-]+)/);
+        if (extMatch) {
+          const mimeExt = extMatch[1];
+          if (mimeExt === 'pdf') ext = '.pdf';
+          else if (mimeExt === 'msword') ext = '.doc';
+          else if (mimeExt.includes('officedocument') || mimeExt.includes('opendocument')) {
+            if (mimeExt.includes('word') || mimeExt.includes('text')) ext = '.docx';
+            else if (mimeExt.includes('spreadsheet')) ext = '.xlsx';
+            else if (mimeExt.includes('presentation')) ext = '.pptx';
+            else ext = '.docx';
+          } else if (mimeExt === 'jpeg' || mimeExt === 'jpg') ext = '.jpg';
+          else if (mimeExt === 'png') ext = '.png';
+          else if (mimeExt === 'gif') ext = '.gif';
+          else if (mimeExt === 'webp') ext = '.webp';
+          else if (mimeExt === 'svg+xml') ext = '.svg';
+          else if (mimeExt === 'zip') ext = '.zip';
+          else if (mimeExt === 'octet-stream') ext = '.bin';
+          else ext = '.' + mimeExt.split('+')[0];
+        }
+        // 从 content-disposition 提取文件名
+        const cd = response.headers['content-disposition'] || '';
+        const filenameMatch = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch) {
+          const fname = filenameMatch[1].replace(/['"]/g, '');
+          const parsed = path.parse(fname);
+          if (parsed.ext) ext = parsed.ext;
+        }
+
+        const uuid = crypto.randomUUID();
+        const filename = uuid + ext;
+        const filePath = path.join(DOWNLOADS_DIR, filename);
+        fs.writeFileSync(filePath, response.data);
+
+        const fileUrl = baseUrl ? `${baseUrl}/api/downloads/${filename}` : `/api/downloads/${filename}`;
+
+        return {
+          success: response.status >= 200 && response.status < 300,
+          statusCode: response.status,
+          data: {
+            type: 'file',
+            url: fileUrl,
+            contentType: response.headers['content-type'] || 'application/octet-stream',
+            size: response.data.length,
+          },
+          meta: {
+            service: service.name,
+            upstreamStatus: response.status,
+          },
+        };
+      }
+
+      let body = response.data.toString('utf-8');
+      if (body.trim()) {
         try { body = JSON.parse(body); } catch { /* keep as string */ }
       }
 
@@ -243,8 +309,10 @@ const gatewayService = {
     return service;
   },
 
-  async getTools() {
-    const services = await require('../database').db.services.find({ enabled: true }).sort({ createdAt: -1 });
+  async getTools(allowedSlugs = null) {
+    const query = { enabled: true };
+    if (allowedSlugs) query.slug = { $in: allowedSlugs };
+    const services = await require('../database').db.services.find(query).sort({ createdAt: -1 });
     return services.map(s => ({
       name: s.name,
       slug: s.slug,
@@ -253,6 +321,8 @@ const gatewayService = {
       endpoint: `/api/gateway/${s.slug}`,
       method: 'POST',
       detail_url: `/api/gateway/tools/${s.slug}`,
+      welcomeUrl: s.welcomeUrl || '',
+      input_example: s.inputExample || '',
     }));
   },
 };

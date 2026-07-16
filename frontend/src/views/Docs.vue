@@ -106,16 +106,16 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page{max-width:1300px;margin:0 auto;padding:24px}
-.docs-layout{display:flex;gap:24px;align-items:flex-start}
-.sidebar{width:200px;flex-shrink:0;position:sticky;top:80px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;max-height:calc(100vh - 100px);overflow-y:auto}
+.page{max-width:1300px;margin:0 auto;padding:24px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.docs-layout{display:flex;gap:24px;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:200px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;overflow-y:auto}
 .sidebar-title{font-size:.9rem;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}
 .cat-name{font-size:.68rem;color:#4f46e5;background:#eef2ff;letter-spacing:.8px;margin:12px 0 6px;font-weight:700;padding:4px 8px;border-radius:4px;display:inline-block}
 .cat-name:first-child{margin-top:0}
 .nav-item{display:block;padding:6px 10px;font-size:.82rem;color:#64748b;text-decoration:none;border-radius:6px;transition:all .15s;cursor:pointer}
 .nav-item:hover{color:#4f46e5;background:rgba(79,70,229,.06)}
 .nav-item.active{color:#4f46e5;background:#eef2ff;font-weight:500}
-.content{flex:1;min-width:0}
+.content{flex:1;min-width:0;overflow-y:auto}
 .pt{font-size:1.5rem;margin-bottom:24px}
 .cat-title{font-size:1.05rem;font-weight:700;color:#4f46e5;margin-bottom:14px;padding:8px 14px;background:#eef2ff;border-radius:8px;display:inline-block}
 .card{background:#fff;border-radius:10px}.ch{padding:14px 20px;border-bottom:1px solid #f1f5f9}.ch h3{font-size:1rem}.cb{padding:20px}

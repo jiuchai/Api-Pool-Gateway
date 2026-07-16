@@ -3,6 +3,7 @@
     <h1 class="pt">系统监控</h1>
     <div v-if="loading" style="text-align:center;padding:40px">加载中...</div>
     <template v-else-if="data">
+      <div style="flex:1;overflow-y:auto;min-height:0">
       <div class="sg">
         <div class="sc"><div class="sl">总用户</div><div class="sv">{{ data.overview.totalUsers }}</div></div>
         <div class="sc"><div class="sl">总服务</div><div class="sv">{{ data.overview.totalServices }}</div></div>
@@ -39,6 +40,7 @@
         <div class="ir"><span>堆内存</span><strong>{{ data.system.memory.heapUsed }}</strong></div>
         <div class="ir"><span>Node版本</span><strong>{{ data.system.nodeVersion }}</strong></div>
       </div></div>
+      </div>
     </template>
   </div>
 </template>
@@ -95,7 +97,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.container{max-width:1100px;margin:0 auto;padding:24px}.pt{font-size:1.5rem;margin-bottom:20px}
+.container{max-width:1100px;margin:0 auto;padding:24px;height:100%;display:flex;flex-direction:column;overflow:hidden}.pt{font-size:1.5rem;margin-bottom:20px;flex-shrink:0}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
 .sc{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px;text-align:center}.sl{font-size:.75rem;color:#94a3b8;text-transform:uppercase;margin-bottom:6px}.sv{font-size:1.8rem;font-weight:700}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}

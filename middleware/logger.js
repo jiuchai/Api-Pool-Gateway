@@ -37,6 +37,8 @@ async function logCall(req, res, responseBody, responseTime) {
     await db.callLogs.insert({
       userId: req.user?._id || null,
       username: req.user?.username || 'anonymous',
+      email: req.user?.email || null,
+      apiKeyName: req.apiKey?.name || null,
       serviceSlug: req.params?.slug || null,
       serviceName,
       method: req.method,

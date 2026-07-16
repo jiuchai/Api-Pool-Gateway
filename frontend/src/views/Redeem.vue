@@ -50,9 +50,9 @@ async function handleRedeem() {
 </script>
 
 <style scoped>
-.container { max-width: 600px; margin: 0 auto; padding: 32px 24px; }
-.page-title { font-size: 1.5rem; margin-bottom: 4px; }
-.page-subtitle { color: #64748b; margin-bottom: 24px; }
+.container { max-width: 600px; margin: 0 auto; padding: 32px 24px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.page-title { font-size: 1.5rem; margin-bottom: 4px; flex-shrink: 0; }
+.page-subtitle { color: #64748b; margin-bottom: 24px; flex-shrink: 0; }
 .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; }
 .card-body { padding: 28px; }
 .redeem-form { display: flex; gap: 12px; }

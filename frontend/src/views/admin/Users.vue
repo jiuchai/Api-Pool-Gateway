@@ -17,7 +17,7 @@ async function tgl(u){try{await put(`/api/admin/users/${u.id}`,{disabled:!u.disa
 onMounted(()=>load())
 </script>
 <style scoped>
-.container{max-width:1000px;margin:0 auto;padding:24px}.pt{font-size:1.5rem;margin-bottom:16px}.fb{display:flex;gap:8px;margin-bottom:16px}.fi{width:200px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:.85rem}
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px}.cb{padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.85rem}th{color:#94a3b8;font-weight:600;font-size:.75rem}
+.container{max-width:1000px;margin:0 auto;padding:24px;height:100%;display:flex;flex-direction:column;overflow:hidden}.pt{font-size:1.5rem;margin-bottom:16px;flex-shrink:0}.fb{display:flex;gap:8px;margin-bottom:16px;flex-shrink:0}.fi{width:200px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:.85rem}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;flex:1;overflow-y:auto;min-height:0}.cb{padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.85rem}th{color:#94a3b8;font-weight:600;font-size:.75rem}
 .badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.75rem;font-weight:600}.bi{background:#dbeafe;color:#1e40af}.bs{background:#d1fae5;color:#065f46}.bd{background:#fee2e2;color:#991b1b}
 </style>
