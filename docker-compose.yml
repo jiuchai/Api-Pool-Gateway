@@ -5,6 +5,7 @@ services:
     build:
       context: .
       args:
+        # 自动读取.env里的BUILD_FRONTEND，无则默认false
         BUILD_FRONTEND: ${BUILD_FRONTEND:-false}
     container_name: pool-gateway
     restart: unless-stopped
@@ -21,6 +22,11 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - mongo
+    # 临时挂载：容器构建好后，把打包的public输出到宿主机
+    volumes:
+      - ./public:/app/dist-output
+    # 容器启动时自动把内置public复制到挂载目录，覆盖宿主机文件
+    command: sh -c "cp -rf /app/public/* /app/dist-output/ && node server.js"
 
   mongo:
     image: mongo:7
@@ -39,6 +45,7 @@ services:
       - "${NGINX_PORT:-8080}:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # 依旧挂载本地public，现在会是最新编译产物
       - ./public:/usr/share/nginx/html:ro
     depends_on:
       - app

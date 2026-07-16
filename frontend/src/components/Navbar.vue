@@ -11,6 +11,7 @@
         <router-link to="/logs">日志</router-link>
         <router-link to="/plans">套餐</router-link>
         <router-link to="/redeem">兑换</router-link>
+        <router-link to="/payment-history">支付记录</router-link>
       </template>
       <template v-if="a.isAdmin">
         <span class="sep">|</span>

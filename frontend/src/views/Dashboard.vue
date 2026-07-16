@@ -1,9 +1,58 @@
 <template>
   <div class="page container">
     <h1 class="page-title">控制台</h1>
-    <div v-if="loading" class="loading">加载中...</div>
+    <div v-if="loading" class="skeleton">
+      <!-- 套餐卡片骨架 -->
+      <div class="tier-card card sk-card">
+        <div class="tier-card-header">
+          <div style="flex:1">
+            <div class="sk-line" style="width:30%;height:20px;margin-bottom:8px"></div>
+            <div class="sk-line" style="width:50%;height:14px;margin-bottom:4px"></div>
+            <div class="sk-line" style="width:35%;height:14px"></div>
+          </div>
+          <div style="text-align:right">
+            <div class="sk-line" style="width:60px;height:28px;margin-bottom:8px;margin-left:auto"></div>
+            <div class="sk-line" style="width:140px;height:28px;margin-left:auto"></div>
+          </div>
+        </div>
+        <div class="tier-progress-row">
+          <div class="sk-line" style="width:60%;height:14px;margin-bottom:10px"></div>
+          <div class="sk-line" style="width:100%;height:14px;border-radius:7px"></div>
+        </div>
+      </div>
+
+      <!-- 统计卡片骨架 -->
+      <div class="stats-grid">
+        <div class="stat-card sk-card" v-for="i in 6" :key="'stat'+i">
+          <div class="sk-line" style="width:50%;height:12px;margin-bottom:10px"></div>
+          <div class="sk-line" style="width:35%;height:28px"></div>
+        </div>
+      </div>
+
+      <!-- 图表骨架 -->
+      <div class="charts-row">
+        <div class="card chart-card sk-card">
+          <div class="card-header"><div class="sk-line" style="width:40%;height:16px"></div></div>
+          <div class="card-body sk-chart"><div class="sk-line" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="card chart-card sk-card">
+          <div class="card-header"><div class="sk-line" style="width:35%;height:16px"></div></div>
+          <div class="card-body sk-chart"><div class="sk-line" style="width:100%;height:100%"></div></div>
+        </div>
+      </div>
+
+      <!-- 日志表格骨架 -->
+      <div class="card sk-card">
+        <div class="card-header flex-between">
+          <div class="sk-line" style="width:30%;height:16px"></div>
+          <div class="sk-line" style="width:60px;height:28px"></div>
+        </div>
+        <div class="card-body">
+          <div class="sk-line" v-for="i in 5" :key="'log'+i" style="width:100%;height:14px;margin-bottom:12px" :style="{ width: (90 - i * 8) + '%' }"></div>
+        </div>
+      </div>
+    </div>
     <template v-else-if="data">
-      <div style="flex:1;overflow-y:auto;min-height:0">
       <!-- 当前套餐 -->
       <div class="tier-card card" v-if="usage">
         <div class="tier-card-header">
@@ -95,7 +144,6 @@
           </table>
           <div v-else class="text-muted" style="text-align:center;padding:20px">暂无调用记录</div>
         </div>
-      </div>
       </div>
     </template>
   </div>
@@ -199,9 +247,20 @@ onMounted(load)
 </script>
 
 <style scoped>
-.container { max-width: 1200px; margin: 0 auto; padding: 24px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; min-height: calc(100vh - 60px); display: flex; flex-direction: column; }
 .page-title { font-size: 1.5rem; margin-bottom: 24px; flex-shrink: 0; }
 .loading { text-align: center; padding: 60px; color: #94a3b8; }
+.skeleton { animation: sk-fade .3s; }
+@keyframes sk-fade { from { opacity: 0; } to { opacity: 1; } }
+.sk-card { pointer-events: none; }
+.sk-line {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes sk-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.sk-chart { display: flex; align-items: center; justify-content: center; }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 .stat-label { font-size: .75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }

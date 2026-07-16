@@ -11,6 +11,7 @@ const routes = [
   { path: '/tools', name: 'Tools', component: () => import('@/views/Tools.vue') },
   { path: '/test', name: 'Test', component: () => import('@/views/Test.vue') },
   { path: '/plans', name: 'Plans', component: () => import('@/views/Plans.vue') },
+  { path: '/payment-history', name: 'PaymentHistory', component: () => import('@/views/PaymentHistory.vue'), meta: { auth: true } },
   { path: '/redeem', name: 'Redeem', component: () => import('@/views/Redeem.vue'), meta: { auth: true } },
   { path: '/admin/services', name: 'AdminServices', component: () => import('@/views/admin/Services.vue'), meta: { auth: true, admin: true } },
   { path: '/admin/users', name: 'AdminUsers', component: () => import('@/views/admin/Users.vue'), meta: { auth: true, admin: true } },

@@ -178,11 +178,14 @@ const settingsSchema = new mongoose.Schema({
 });
 
 const paymentTokenSchema = new mongoose.Schema({
-  token:         { type: String, required: true, unique: true },
+  orderId:       { type: String, required: true, unique: true },
+  secretKey:     { type: String, required: true },
   userId:        { type: String, required: true },
   tierIndex:     { type: Number, required: true },
   durationDays:  { type: Number, default: 30 },
-  used:          { type: Boolean, default: false },
+  amount:        { type: Number, default: 0 },
+  tierName:      { type: String, default: '' },
+  status:        { type: String, default: 'pending' },
   expiresAt:     { type: Number, required: true },
   createdAt:     { type: Number, default: Date.now },
 });

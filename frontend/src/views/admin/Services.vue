@@ -1,23 +1,52 @@
 <template>
   <div class="page container">
-    <h1 class="pt">服务管理</h1>
-    <el-tabs v-model="activeTab" type="border-card" class="manage-tabs">
-      <el-tab-pane label="服务" name="services">
-    <div class="card">
-      <div class="ch" style="display:flex;justify-content:space-between">
-        <h3>已注册服务</h3>
-        <div style="display:flex;gap:8px">
-          <el-button size="small" @click="exportServices">导出</el-button>
-          <el-button size="small" @click="openImport">导入</el-button>
-          <el-button type="primary" size="small" @click="openCreate">+ 添加服务</el-button>
+    <h1 class="page-title">服务管理</h1>
+
+    <!-- Tab 切换 -->
+    <div class="tab-bar">
+      <button :class="['tab', { active: activeTab === 'services' }]" @click="activeTab = 'services'">服务</button>
+      <button :class="['tab', { active: activeTab === 'notices' }]" @click="activeTab = 'notices'">公告</button>
+      <button :class="['tab', { active: activeTab === 'settings' }]" @click="activeTab = 'settings'">设置</button>
+    </div>
+
+    <div class="tab-content">
+
+    <!-- ==================== 服务 ==================== -->
+    <div v-show="activeTab === 'services'" class="tab-panel">
+      <div class="card fixed-card">
+        <div class="card-header flex-between">
+          <h3>已注册服务</h3>
+          <div style="display:flex;gap:8px">
+            <el-button size="small" @click="exportServices">导出</el-button>
+            <el-button size="small" @click="openImport">导入</el-button>
+            <el-button type="primary" size="small" @click="openCreate">+ 添加服务</el-button>
+          </div>
+        </div>
+        <div class="card-body" style="overflow:auto;flex:1">
+          <table v-if="services.length">
+            <thead><tr><th>名称</th><th>标识</th><th>分类</th><th>方法</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody><tr v-for="s in services" :key="s._id"><td><strong>{{ s.name }}</strong></td><td><code>{{ s.slug }}</code></td><td>{{ s.category }}</td><td><span class="mb">{{ s.method }}</span></td><td><span :class="['badge',s.enabled?'bs':'bd']">{{ s.enabled?'启用':'禁用' }}</span></td><td class="acts"><el-button size="small" @click="editService(s)">编辑</el-button><el-button size="small" :type="s.enabled?'warning':'success'" @click="toggle(s)">{{ s.enabled?'禁用':'启用' }}</el-button><el-button size="small" type="danger" @click="deleteService(s.slug)">删除</el-button></td></tr></tbody>
+          </table>
+          <div v-else style="text-align:center;padding:30px;color:#94a3b8">暂无服务，请添加</div>
         </div>
       </div>
-      <div class="cb">
-        <div class="table-wrap">
-        <table v-if="services.length"><thead><tr><th>名称</th><th>标识</th><th>分类</th><th>方法</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="s in services" :key="s._id"><td><strong>{{ s.name }}</strong></td><td><code>{{ s.slug }}</code></td><td>{{ s.category }}</td><td><span class="mb">{{ s.method }}</span></td><td><span :class="['badge',s.enabled?'bs':'bd']">{{ s.enabled?'启用':'禁用' }}</span></td><td class="acts"><el-button size="small" @click="editService(s)">编辑</el-button><el-button size="small" :type="s.enabled?'warning':'success'" @click="toggle(s)">{{ s.enabled?'禁用':'启用' }}</el-button><el-button size="small" type="danger" @click="deleteService(s.slug)">删除</el-button></td></tr></tbody></table>
-        <div v-else style="text-align:center;padding:30px;color:#94a3b8">暂无服务，请添加</div>
+    </div>
+
+    <!-- ==================== 公告 ==================== -->
+    <div v-show="activeTab === 'notices'" class="tab-panel">
+      <NoticeManage />
+    </div>
+
+    <!-- ==================== 设置 ==================== -->
+    <div v-show="activeTab === 'settings'" class="tab-panel">
+      <div class="card fixed-card">
+        <div class="card-header"><h3>站点设置</h3></div>
+        <div class="card-body" style="overflow:auto;flex:1">
+          <SiteSettings />
         </div>
       </div>
+    </div>
+
     </div>
 
     <!-- 导出弹窗 -->
@@ -33,7 +62,6 @@
 
     <!-- 导入弹窗 -->
     <el-dialog v-model="importShow" title="导入服务" width="850px" destroy-on-close @closed="resetImport" class="import-dialog">
-      <!-- Step 0: 选择来源 -->
       <template v-if="importStep === 0">
         <el-tabs v-model="importTab" class="import-tabs">
           <el-tab-pane label="从官方更新" name="official">
@@ -66,7 +94,6 @@
         </el-tabs>
       </template>
 
-      <!-- Step 1: 预览 + 勾选 -->
       <template v-else-if="importStep === 1">
         <div class="import-info">
           获取到 <strong>{{ importPreview.length }}</strong> 个服务，
@@ -86,7 +113,6 @@
         </div>
       </template>
 
-      <!-- Step 2: 冲突处理 -->
       <template v-else-if="importStep === 2">
         <div style="text-align:center;padding:20px">
           <p style="font-size:1rem;margin-bottom:8px">{{ duplicateCount }} 个服务已存在，如何处理？</p>
@@ -184,14 +210,6 @@
         <el-button type="primary" @click="save">{{ editing?'保存':'创建' }}</el-button>
       </template>
     </el-dialog>
-      </el-tab-pane>
-      <el-tab-pane label="公告" name="notices">
-        <NoticeManage />
-      </el-tab-pane>
-      <el-tab-pane label="设置" name="settings">
-        <SiteSettings />
-      </el-tab-pane>
-    </el-tabs>
   </div>
 </template>
 
@@ -370,14 +388,22 @@ onMounted(() => { load(); loadServiceStoreUrl() })
 </script>
 
 <style scoped>
-.container{max-width:1200px;margin:0 auto;padding:24px;height:100%;display:flex;flex-direction:column;overflow:hidden}.pt{font-size:1.5rem;margin-bottom:20px;flex-shrink:0}
-.manage-tabs{flex:1;display:flex;flex-direction:column;min-height:0}.manage-tabs :deep(.el-tabs__content){flex:1;overflow-y:auto;min-height:0}
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px}.ch{padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center}.ch h3{font-size:1rem}.cb{padding:20px}
-.table-wrap{max-height:55vh;overflow:auto}
+.container{max-width:1200px;margin:0 auto;padding:24px;min-height:calc(100vh - 60px);display:flex;flex-direction:column}
+.page-title{font-size:1.5rem;margin-bottom:20px;flex-shrink:0}
+.tab-bar{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:20px;flex-shrink:0}
+.tab{padding:10px 24px;font-size:.9rem;border:none;background:none;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:#1e293b}
+.tab.active{color:#4f46e5;border-bottom-color:#4f46e5;font-weight:600}
+.tab-content{height:calc(100vh - 250px);min-height:350px}
+.tab-panel{height:100%;display:flex;flex-direction:column;overflow:auto}
+.fixed-card{display:flex;flex-direction:column;height:100%}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px}
+.card-header{padding:14px 20px;border-bottom:1px solid #f1f5f9}
+.card-header h3{font-size:1rem}
+.card-body{padding:20px}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
 table{width:100%;border-collapse:collapse;min-width:750px}
-thead{position:sticky;top:0;z-index:1}
-th{background:#fff}
-th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.85rem;color:#1e293b;white-space:nowrap}th{color:#94a3b8;font-weight:600;font-size:.75rem}code{font-size:.8rem;font-family:'Consolas',monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.85rem;color:#1e293b}th{color:#94a3b8;font-weight:600;font-size:.75rem}code{font-size:.8rem;font-family:'Consolas',monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px}
 .acts{display:flex;gap:6px;flex-wrap:nowrap;white-space:nowrap}.mb{font-weight:600;color:#4f46e5;font-size:.75rem}.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.75rem;font-weight:600}.bs{background:#d1fae5;color:#065f46}.bd{background:#fee2e2;color:#991b1b}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
 .fg{margin-bottom:14px}.fg label{display:block;margin-bottom:6px;font-weight:500;font-size:.875rem}
@@ -389,13 +415,11 @@ th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9;font-siz
 .p-tag{width:110px;text-align:center;display:inline-flex;justify-content:center}
 .p-desc{flex:1;min-width:120px}
 .p-del,.p-add{width:32px;height:32px;padding:0}
-/* 导入 */
 .import-tabs{margin-bottom:8px}
 .import-info{background:#eef2ff;color:#4f46e5;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:.9rem}
 .import-list{max-height:400px;overflow-y:auto}
 .tool-category{font-size:.68rem;padding:2px 8px;border-radius:4px;background:#f1f5f9;color:#64748b;margin-left:4px}
 .dup-tag{font-size:.68rem;padding:2px 6px;border-radius:4px;background:#fee2e2;color:#991b1b;margin-left:auto}
-/* 导出弹窗 */
 pre{margin:0}
 </style>
 <style>
@@ -403,4 +427,8 @@ pre{margin:0}
 .svc-dialog .el-dialog__body{max-height:60vh;overflow-y:auto;padding-top:0}
 /* 导入弹窗 */
 .import-dialog .el-dialog__body{min-height:220px}
+/* 公告卡片撑满 tab 高度 */
+.notice-manage{height:100%;display:flex;flex-direction:column}
+.notice-manage .card{flex:1;display:flex;flex-direction:column;min-height:0}
+.notice-manage .cb{flex:1;overflow:auto}
 </style>

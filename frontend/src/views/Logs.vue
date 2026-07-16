@@ -63,7 +63,7 @@ async function loadServices() { try { const r = await get('/api/services'); serv
 </script>
 
 <style scoped>
-.container { max-width: 1300px; margin: 0 auto; padding: 24px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.container { max-width: 1300px; margin: 0 auto; padding: 24px; height: calc(100vh - 60px); display: flex; flex-direction: column; overflow: hidden; }
 .pt { font-size: 1.5rem; margin-bottom: 16px; flex-shrink: 0; }
 .fb { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
 .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; flex: 1; overflow-y: auto; min-height: 0; }

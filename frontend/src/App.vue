@@ -3,9 +3,6 @@
     <Navbar />
     <main class="main-content">
       <div class="content-wrap"><router-view /></div>
-      <footer class="app-footer">
-        <span>&copy; {{ year }} API Pool Gateway</span>
-      </footer>
     </main>
     <ToastContainer />
     <!-- 公告弹窗 -->
@@ -39,8 +36,6 @@ import { marked } from 'marked'
 import Navbar from './components/Navbar.vue'
 import ToastContainer from './components/ToastContainer.vue'
 
-const year = new Date().getFullYear()
-
 const noticeList = ref([])
 const showNotice = ref(false)
 const noticeTab = ref(0)
@@ -64,14 +59,13 @@ async function loadNotices() {
 onMounted(loadNotices)
 </script>
 <style>
-html,body{height:100%;overflow:hidden}
-#app{height:100%}
+html,body{height:100%}
+#app{min-height:100%}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;line-height:1.6}
-.app-shell{display:flex;flex-direction:column;height:100%}
-.main-content{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+.app-shell{display:flex;flex-direction:column;min-height:100%}
+.main-content{flex:1;display:flex;flex-direction:column}
 .content-wrap{flex:1}
-.app-footer{flex-shrink:0;text-align:center;padding:20px;font-size:.78rem;color:#94a3b8;border-top:1px solid #f1f5f9;background:#fff}
 
 /* Element Plus 主题适配 */
 :root {

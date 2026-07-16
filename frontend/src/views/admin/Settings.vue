@@ -62,7 +62,7 @@ async function save() {
 .form-group label{display:block;font-size:.85rem;font-weight:600;color:#334155;margin-bottom:6px}
 .input{width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;outline:none;box-sizing:border-box}.input:focus{border-color:#4f46e5}
 textarea.input{font-family:inherit}
-.form-actions{margin-top:20px;display:flex;align-items:center;gap:14px}
+.form-actions{margin-top:20px;display:flex;align-items:center;justify-content:center;gap:14px}
 .form-section{margin-top:28px;padding-top:20px;border-top:1px solid #f1f5f9}
 .section-title{font-size:.95rem;font-weight:700;color:#1e293b;margin-bottom:16px}
 .form-hint{margin-top:6px;font-size:.75rem;color:#94a3b8;line-height:1.5}

@@ -6,7 +6,7 @@ const DEFAULTS = {
   siteTitle: 'API Pool 聚合网关',
   paymentUrl: '',
   paymentNotifyUrl: '',
-  paymentWebhookSecret: '',
+  paymentWebhookSecret: process.env.PAYMENT_WEBHOOK_SECRET || 'my-pay-secret',
 };
 
 async function getSettings() {

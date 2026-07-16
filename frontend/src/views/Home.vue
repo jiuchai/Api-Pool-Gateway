@@ -7,6 +7,7 @@
       <div class="bg-blob b3"></div>
       <div class="bg-grid"></div>
     </div>
+    <div class="home-main">
     <section class="hero container">
       <h1 v-if="siteInfo.title">{{ siteInfo.title }}</h1>
       <p>{{ siteInfo.description }}</p>
@@ -32,6 +33,19 @@
       </div>
     </section>
     <div v-else class="container" style="text-align:center;padding:40px;color:#94a3b8">暂无可用服务</div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-row">
+          <span class="footer-copy">&copy; {{ new Date().getFullYear() }} API Pool Gateway</span>
+          <a href="https://github.com/jiuchai/Api-Pool-Gateway" target="_blank" rel="noopener" class="footer-link">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 <script setup>
@@ -46,7 +60,8 @@ onMounted(async () => {
 })
 </script>
 <style scoped>
-.home-page{position:relative;overflow:hidden}
+.home-page{position:relative;overflow:hidden;min-height:100vh;display:flex;flex-direction:column}
+.home-main{flex:1}
 .bg-anim{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
 .bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;animation:float 12s ease-in-out infinite}
 .b1{width:500px;height:500px;background:rgba(99,102,241,.15);top:-10%;left:-5%;animation-delay:0s}
@@ -74,5 +89,10 @@ onMounted(async () => {
 .scard h3{margin-bottom:6px;font-size:1.05rem}.scard p{color:#64748b;font-size:.85rem;line-height:1.5;margin-bottom:14px}
 .smeta{display:flex;align-items:center;gap:10px}
 .sbadge{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:4px;background:#dbeafe;color:#1e40af}
-.sendpoint{font-family:'Consolas',monospace;font-size:.78rem;color:#94a3b8}
+.sendpoint{font-family:'Consolas',monospace;font-size:.78rem;color:#94a3b8}.home-main{flex:1;padding-bottom:80px}
+.site-footer{position:fixed;bottom:0;left:0;right:0;padding:20px 0;border-top:1px solid #e2e8f0;z-index:10;background:rgba(255,255,255,.92);backdrop-filter:blur(8px)}
+.footer-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.footer-copy{font-size:.82rem;color:#94a3b8}
+.footer-link{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:#64748b;text-decoration:none;transition:color .15s}
+.footer-link:hover{color:#4f46e5}
 </style>

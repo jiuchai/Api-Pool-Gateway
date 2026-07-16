@@ -256,9 +256,48 @@ const tierService = require('../services/tierService');
 
 router.get('/billing/stats', async (req, res) => {
   try {
-    const { month } = req.query;
+    const { month, search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 20;
     const stats = await billingService.getSystemBillingStats(month);
-    const users = await billingService.getAllUsersBilling(month, parseInt(req.query.page) || 1, parseInt(req.query.pageSize) || 20);
+
+    // 搜索用户
+    let userIds = null;
+    if (search) {
+      const matched = await db.users.find({ username: { $regex: search, $options: 'i' } });
+      userIds = matched.map(u => u._id);
+      if (!userIds.length) return res.json({ success: true, data: { summary: stats, users: { records: [], total: 0, page, pageSize, totalPages: 0 } } });
+    }
+
+    const users = await billingService.getAllUsersBilling(month, page, pageSize);
+    // 如果搜索，过滤用户
+    if (userIds) {
+      const allUserIds = new Set(userIds);
+      const filtered = users.records.filter(r => allUserIds.has(r.userId));
+      users.records = filtered;
+      users.total = filtered.length;
+      users.totalPages = Math.ceil(users.total / pageSize);
+    }
+
+    // 计算总消费（从 paymentTokens 累加）
+    const consumptionMap = {};
+    for (const r of users.records) {
+      const paidOrders = await db.paymentTokens.find({ userId: r.userId, status: 'paid' });
+      let totalPaid = 0;
+      let monthPaid = 0;
+      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      for (const o of paidOrders) {
+        totalPaid += o.amount || 0;
+        if (o.createdAt >= monthStart.getTime()) monthPaid += o.amount || 0;
+      }
+      // 获取当前激活套餐
+      const activeSubs = await billingService.getActiveSubscriptions(r.userId);
+      const activeNames = activeSubs.map(s => s.name).join(', ') || '-';
+      r.totalConsumption = totalPaid;
+      r.monthConsumption = monthPaid;
+      r.activeTier = activeNames;
+    }
+
     res.json({ success: true, data: { summary: stats, users } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -416,6 +455,82 @@ router.put('/settings', async (req, res) => {
     const settings = await settingsService.saveSettings(req.body);
     await auditLog('settings_updated', { ...req.body });
     res.json({ success: true, data: settings });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 支付订单记录（支持搜索：用户名、套餐、时间范围）
+router.get('/payment-orders', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize) || 20, 100);
+    const skip = (page - 1) * pageSize;
+    const { search, tierName, startDate, endDate } = req.query;
+
+    // 构建查询条件
+    const query = {};
+    if (tierName) query.tierName = { $regex: tierName, $options: 'i' };
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate).getTime();
+      if (endDate) query.createdAt.$lte = new Date(endDate + 'T23:59:59').getTime();
+    }
+
+    // 如果搜索用户名，先查匹配的用户ID
+    let userIdFilter = null;
+    if (search) {
+      const matched = await db.users.find({ username: { $regex: search, $options: 'i' } });
+      userIdFilter = matched.map(u => u._id);
+      if (!userIdFilter.length) {
+        return res.json({ success: true, data: { orders: [], total: 0, page, pageSize, totalPages: 0 } });
+      }
+    }
+
+    // 合并查询
+    let allOrders;
+    if (userIdFilter) {
+      allOrders = [];
+      // 分批次查询
+      for (const uid of userIdFilter) {
+        const q = { ...query, userId: uid };
+        const batch = await db.paymentTokens.find(q).sort({ createdAt: -1 });
+        allOrders.push(...batch);
+      }
+      allOrders.sort((a, b) => b.createdAt - a.createdAt);
+    } else {
+      allOrders = await db.paymentTokens.find(query).sort({ createdAt: -1 });
+    }
+
+    const total = allOrders.length;
+    const pagedOrders = allOrders.slice(skip, skip + pageSize);
+
+    // 批量查用户
+    const userIds = [...new Set(pagedOrders.map(o => o.userId).filter(Boolean))];
+    const userMap = {};
+    if (userIds.length) {
+      const users = await db.users.find({ _id: { $in: userIds } });
+      users.forEach(u => { userMap[u._id] = u; });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        orders: pagedOrders.map(o => {
+          const u = userMap[o.userId] || {};
+          return {
+            orderId: o.orderId,
+            userId: o.userId,
+            username: u.username || '-',
+            email: u.email || '-',
+            tierName: o.tierName || '',
+            amount: o.amount || 0,
+            status: o.status,
+            createdAt: o.createdAt,
+            expiresAt: o.expiresAt,
+          };
+        }),
+        total, page, pageSize, totalPages: Math.ceil(total / pageSize),
+      },
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

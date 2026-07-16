@@ -90,6 +90,10 @@ app.get('/api/site-info', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 支付回调（挂载在 /pay，nginx 不代理此路径，仅内网可访问）
+const { paymentWebhook } = require('./routes/billing');
+app.post('/pay', paymentWebhook);
+
 // 404 & error
 app.use((req, res) => { res.status(404).json({ error: '接口不存在' }); });
 app.use((err, req, res, next) => {
@@ -125,10 +129,6 @@ async function init() {
     try { await db.rateLimit.remove({ timestamp: { $lt: Date.now() - 86400000 } }, { multi: true }); } catch {}
   }, 3600000);
 }
-
-// 支付回调（挂载在 /pay，nginx 不代理此路径，仅内网可访问）
-const { paymentWebhook } = require('./routes/billing');
-app.post('/pay', paymentWebhook);
 
 init().then(() => {
   app.listen(config.port, () => {

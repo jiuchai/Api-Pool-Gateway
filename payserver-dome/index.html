@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模拟支付</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.1); width: 400px; max-width: 100%; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; padding: 28px 24px; text-align: center; }
+    .header h2 { font-size: 1.15rem; margin-bottom: 4px; }
+    .header .amount { font-size: 2.2rem; font-weight: 700; margin-top: 8px; }
+    .body { padding: 24px; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: .85rem; color: #475569; }
+    .info-row span:last-child { color: #1e293b; font-weight: 500; }
+    .qr-box { text-align: center; padding: 24px 0; }
+    .qr-img { width: 180px; height: 180px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: #94a3b8; font-size: .8rem; flex-direction: column; gap: 4px; }
+    .qr-img svg { width: 60px; height: 60px; opacity: .4; }
+    .hint { text-align: center; color: #64748b; font-size: .78rem; margin-bottom: 16px; }
+    .btns { display: flex; gap: 12px; }
+    .btns button { flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .btn-pay { background: #6366f1; color: #fff; }
+    .btn-pay:hover:not(:disabled) { background: #4f46e5; }
+    .btn-pay:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .btn-cancel { background: #f1f5f9; color: #475569; }
+    .btn-cancel:hover { background: #e2e8f0; }
+    .btn-back { background: #334155; color: #fff; width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+    .result { display: none; text-align: center; padding: 16px; border-radius: 10px; margin-top: 16px; font-size: .9rem; font-weight: 600; }
+    .result.success { display: block; background: #dcfce7; color: #166534; }
+    .result.fail { display: block; background: #fee2e2; color: #991b1b; }
+    .result.info { display: block; background: #e0e7ff; color: #3730a3; }
+    .countdown { text-align: center; color: #94a3b8; font-size: .72rem; margin-top: 12px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: .7rem; font-weight: 600; }
+    .badge-paid { background: #dcfce7; color: #166534; }
+    .badge-expired { background: #fef3c7; color: #92400e; }
+    .badge-pending { background: #e0e7ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h2 id="tierName">加载中...</h2>
+    <div class="amount" id="amount">¥--</div>
+  </div>
+  <div class="body">
+    <div class="info-row"><span>订单号</span><span id="orderId" style="font-family:monospace;font-size:.75rem">---</span></div>
+    <div class="info-row"><span>天数</span><span id="days">--</span></div>
+    <div class="info-row"><span>状态</span><span id="statusTag">--</span></div>
+    <div class="info-row"><span>过期时间</span><span id="expireTime">--</span></div>
+
+    <div class="qr-box">
+      <div class="qr-img">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="13" y="13" width="2" height="2"/>
+          <rect x="17" y="13" width="2" height="2"/><rect x="13" y="17" width="2" height="2"/>
+          <rect x="18" y="18" width="3" height="3"/><rect x="14" y="9" width="1" height="1"/>
+          <rect x="17" y="9" width="1" height="1"/>
+        </svg>
+        <span>模拟二维码</span>
+      </div>
+    </div>
+    <div class="hint">演示页面 — 点击按钮模拟支付结果</div>
+
+    <div class="btns">
+      <button class="btn-cancel" id="btnCancel" onclick="cancelPay()">取消支付</button>
+      <button class="btn-pay" id="btnPay" onclick="confirmPay()">确认支付</button>
+    </div>
+
+    <div id="result" class="result"></div>
+    <div class="countdown" id="countdown"></div>
+    <div id="backBtn" style="display:none;text-align:center;margin-top:12px">
+      <button class="btn-back" onclick="window.close()">返回</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const ORDER_ID = params.get('orderId');
+let expireAt = 0;
+let done = false;
+
+async function init() {
+  if (!ORDER_ID) {
+    document.querySelector('.header').innerHTML = '<h2>错误</h2><div class="amount">缺少订单号</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch('/order/' + ORDER_ID);
+    if (!res.ok) {
+      document.querySelector('.header').innerHTML = '<h2>订单不存在</h2><div class="amount">---</div>';
+      return;
+    }
+    const data = await res.json();
+    const { orderId, tierName, amount, days, status, expiresAt } = data;
+    expireAt = expiresAt;
+
+    document.getElementById('tierName').textContent = tierName || '套餐订阅';
+    document.getElementById('amount').textContent = '¥' + (amount || 0);
+    document.getElementById('orderId').textContent = (orderId || '').substring(0, 16) + '...';
+    document.getElementById('days').textContent = (days || 30) + ' 天';
+    document.getElementById('expireTime').textContent = new Date(expiresAt).toLocaleString('zh-CN');
+
+    const tag = document.getElementById('statusTag');
+    if (status === 'paid') {
+      tag.innerHTML = '<span class="badge badge-paid">已支付</span>';
+      disableBtns();
+    } else if (status === 'expired' || expiresAt < Date.now()) {
+      tag.innerHTML = '<span class="badge badge-expired">已过期（仍可测试）</span>';
+    } else {
+      tag.innerHTML = '<span class="badge badge-pending">待支付</span>';
+    }
+
+    startCountdown();
+  } catch (e) {
+    document.querySelector('.header').innerHTML = '<h2>加载失败</h2><div class="amount">---</div>';
+    document.getElementById('result').className = 'result fail';
+    document.getElementById('result').textContent = '获取订单信息失败: ' + e.message;
+  }
+}
+
+function disableBtns() {
+  document.getElementById('btnPay').disabled = true;
+  document.getElementById('btnCancel').disabled = true;
+  done = true;
+}
+
+function confirmPay() {
+  if (done || !ORDER_ID) return;
+  done = true;
+  document.getElementById('btnPay').disabled = true;
+  document.getElementById('btnCancel').disabled = true;
+  showResult('处理中...', 'info');
+
+  fetch('/pay', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId: ORDER_ID })
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      showResult('支付成功！套餐已开通。', 'success');
+    } else {
+      showResult(data.message || data.error || '支付失败', 'fail');
+    }
+    document.getElementById('backBtn').style.display = '';
+  }).catch(e => {
+    showResult('网络错误: ' + e.message, 'fail');
+    document.getElementById('backBtn').style.display = '';
+  });
+}
+
+function cancelPay() {
+  disableBtns();
+  showResult('已取消支付', 'fail');
+  document.getElementById('backBtn').style.display = '';
+}
+
+function showResult(msg, cls) {
+  const el = document.getElementById('result');
+  el.className = 'result ' + cls;
+  el.textContent = msg;
+}
+
+function startCountdown() {
+  (function tick() {
+    const left = expireAt - Date.now();
+    if (left <= 0) {
+      document.getElementById('countdown').textContent = '订单已过期';
+      return;
+    }
+    const m = Math.floor(left / 60000);
+    const s = Math.floor((left % 60000) / 1000);
+    document.getElementById('countdown').textContent = '剩余 ' + m + '分' + s + '秒';
+    if (!done) setTimeout(tick, 1000);
+  })();
+}
+
+init();
+</script>
+</body>
+</html>

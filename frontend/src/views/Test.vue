@@ -171,7 +171,7 @@ async function send() {
 }
 </script>
 <style scoped>
-.container{max-width:1200px;margin:0 auto;padding:24px;height:100%;display:flex;flex-direction:column;overflow:hidden}.pt{font-size:1.5rem;margin-bottom:20px;flex-shrink:0}
+.container{max-width:1200px;margin:0 auto;padding:24px;height:calc(100vh - 60px);display:flex;flex-direction:column;overflow:hidden}.pt{font-size:1.5rem;margin-bottom:20px;flex-shrink:0}
 .tl{flex:1;display:grid;grid-template-columns:340px 1fr;gap:20px;min-height:0}@media(max-width:750px){.tl{grid-template-columns:1fr}}
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .ch{padding:14px 20px;border-bottom:1px solid #f1f5f9;flex-shrink:0}.ch h3{font-size:1rem}

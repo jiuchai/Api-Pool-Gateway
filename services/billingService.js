@@ -219,7 +219,7 @@ const billingService = {
     for (const record of records) {
       const user = await db.users.findOne({ _id: record.userId });
       const tier = tiers[record.tierIndex] || tiers[0];
-      result.push({ userId: record.userId, username: user ? user.username : '未知', disabled: user ? user.disabled : false, month: record.month, callCount: record.callCount, cost: tier.monthlyFee, tierName: tier.name });
+      result.push({ userId: record.userId, username: user ? user.username : '未知', disabled: user ? user.disabled : false, month: record.month, callCount: record.callCount, tierIndex: record.tierIndex, cost: tier.monthlyFee, tierName: tier.name });
     }
     return { records: result, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   },
