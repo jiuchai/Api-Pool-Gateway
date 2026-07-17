@@ -21,6 +21,7 @@
         <div class="drawer-tip">勾选该 Key 可以调用的服务</div>
         <div class="drawer-actions">
           <el-button size="small" style="min-width:88px" @click="toggleSelectAll">{{ allSelected ? '取消全选' : '全选' }}</el-button>
+          <el-button size="small" type="success" @click="authorizeAll">授权所有服务</el-button>
         </div>
         <div v-for="[cat, svcs], ci in groupedServices" :key="cat" class="svc-cat-group">
           <div class="svc-cat-title" :style="{ color: catColor(ci).base, background: catColor(ci).light }">{{ cat }}</div>
@@ -114,6 +115,16 @@ async function saveServices() {
     drawerVisible.value = false
     load()
   } catch(e) { toast.error(e.message || '保存失败') }
+}
+/** 授权所有服务（含未来新增），保存空数组=不限制 */
+async function authorizeAll() {
+  try {
+    selectedServices.value = [...allSlugs.value]
+    await put(`/api/keys/${currentKeyId.value}/services`, { services: [] })
+    toast.success('已授权所有服务（含未来新增）')
+    drawerVisible.value = false
+    load()
+  } catch(e) { toast.error(e.message || '授权失败') }
 }
 onMounted(() => { load(); loadServices() })
 </script>
