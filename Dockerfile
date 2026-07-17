@@ -28,6 +28,7 @@ COPY middleware/ ./middleware/
 COPY routes/ ./routes/
 COPY services/ ./services/
 COPY utils/ ./utils/
+COPY SKILL.md ./
 # Git repo for update check
 COPY .git/ ./.git/
 
