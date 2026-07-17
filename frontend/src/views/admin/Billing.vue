@@ -199,6 +199,7 @@
 </template>
 
 <script setup>
+// Copyright (c) 2026 jiucai.
 import { ref, onMounted } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 import { get, post, put, del } from '@/api/client'

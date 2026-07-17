@@ -1,3 +1,4 @@
+// Copyright (c) 2026 jiucai.
 const { db } = require('../database');
 
 const DEFAULTS = {

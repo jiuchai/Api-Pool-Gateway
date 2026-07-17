@@ -70,6 +70,7 @@
   </div>
 </template>
 <script setup>
+// Copyright (c) 2026 jiucai.
 import { ref, onMounted } from 'vue'; import { get, put, post } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
 

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 jiucai.
 const mongoose = require('mongoose');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongo:27017/pool-gateway';

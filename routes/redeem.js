@@ -1,3 +1,4 @@
+// Copyright (c) 2026 jiucai.
 const express = require('express');
 const router = express.Router();
 const redeemService = require('../services/redeemService');

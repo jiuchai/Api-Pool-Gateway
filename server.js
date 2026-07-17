@@ -1,3 +1,4 @@
+// Copyright (c) 2026 jiucai.
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

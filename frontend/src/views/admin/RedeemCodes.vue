@@ -74,6 +74,7 @@
 </template>
 
 <script setup>
+// Copyright (c) 2026 jiucai.
 import { ref, onMounted, reactive, computed } from 'vue'
 import { get, post, put, del } from '@/api/client'
 import { useToastStore } from '@/stores/toast'

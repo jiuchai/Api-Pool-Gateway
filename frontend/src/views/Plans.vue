@@ -101,6 +101,7 @@
 </template>
 
 <script setup>
+// Copyright (c) 2026 jiucai.
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/api/client'
 import { useToastStore } from '@/stores/toast'

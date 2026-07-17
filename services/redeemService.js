@@ -1,3 +1,4 @@
+// Copyright (c) 2026 jiucai.
 /**
  * 兑换码服务模块
  */

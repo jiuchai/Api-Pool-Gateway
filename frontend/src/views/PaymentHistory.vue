@@ -27,6 +27,7 @@
 </template>
 
 <script setup>
+// Copyright (c) 2026 jiucai.
 import { ref, onMounted } from 'vue'
 import { get } from '@/api/client'
 
