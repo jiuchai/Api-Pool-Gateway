@@ -13,6 +13,9 @@ RUN npm run build
 FROM node:18-alpine
 WORKDIR /app
 
+# Install git for update check
+RUN apk add --no-cache git
+
 # Backend production dependencies
 COPY package.json package-lock.json* ./
 RUN npm install --production
@@ -25,6 +28,8 @@ COPY middleware/ ./middleware/
 COPY routes/ ./routes/
 COPY services/ ./services/
 COPY utils/ ./utils/
+# Git repo for update check
+COPY .git/ ./.git/
 
 # Frontend: copy both pre-built and freshly-built, choose at build time
 COPY --from=frontend-builder /app/frontend/dist /tmp/frontend-dist
