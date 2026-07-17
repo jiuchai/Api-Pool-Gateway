@@ -14,7 +14,8 @@
     <div class="tab-bar">
       <button :class="['tab', { active: tab === 'tiers' }]" @click="tab = 'tiers'">套餐配置</button>
       <button :class="['tab', { active: tab === 'users' }]" @click="tab = 'users'">消费明细</button>
-      <button :class="['tab', { active: tab === 'orders' }]" @click="tab = 'orders'">支付记录</button>
+      <button :class="['tab', { active: tab === 'orders' }]" @click="switchTab('orders')">支付记录</button>
+      <button :class="['tab', { active: tab === 'allOrders' }]" @click="switchTab('allOrders')">订单查询</button>
     </div>
 
     <div class="tab-content">
@@ -63,20 +64,27 @@
         </div>
         <div class="card-body" style="overflow:auto;flex:1">
           <table v-if="users.length">
-            <thead><tr><th>用户名</th><th>当前套餐</th><th>总消费</th><th>当月消费</th><th>调用次数</th><th>月费</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>用户名</th><th>当前套餐</th><th>到期时间</th><th>总消费</th><th>当月消费</th><th>调用次数</th><th>月费</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
               <tr v-for="u in users" :key="u.userId">
                 <td><strong>{{ u.username }}</strong></td>
                 <td>{{ u.activeTier || u.tierName }}</td>
+                <td>
+                  <template v-if="u.subscriptions && u.subscriptions.length">
+                    <div v-for="(s, si) in u.subscriptions" :key="si" style="font-size:0.8rem;line-height:1.6">
+                      <span>{{ s.tierName }}</span>
+                      <span style="color:#4f46e5;margin-left:4px">{{ s.expiresDate }}</span>
+                    </div>
+                  </template>
+                  <span v-else style="color:#94a3b8">-</span>
+                </td>
                 <td class="cost">¥{{ u.totalConsumption || 0 }}</td>
                 <td class="cost">¥{{ u.monthConsumption || 0 }}</td>
                 <td>{{ u.callCount }}</td>
                 <td class="cost">¥{{ u.cost }}</td>
                 <td><span :class="['badge', u.disabled ? 'bd' : 'bs']">{{ u.disabled ? '已禁用' : '正常' }}</span></td>
                 <td>
-                  <el-select v-model="tierChanges[u.userId]" size="small" style="width:110px" placeholder="切换套餐" @change="changeTier(u.userId)">
-                    <el-option v-for="(t, i) in tierEdit" :key="i" :label="t.name" :value="i" />
-                  </el-select>
+                  <el-button size="small" type="primary" @click="openTierDialog(u)">配置套餐</el-button>
                 </td>
               </tr>
             </tbody>
@@ -87,11 +95,37 @@
       </div>
     </div>
 
-    <!-- ==================== 支付记录 ==================== -->
+    <!-- 配置套餐对话框 -->
+    <el-dialog v-model="tierDialogVisible" title="配置套餐" width="420px" :close-on-click-modal="false">
+      <el-form label-width="80px">
+        <el-form-item label="用户">
+          <span style="font-weight:600">{{ tierDialogUser?.username }}</span>
+        </el-form-item>
+        <el-form-item label="选择套餐">
+          <el-select v-model="tierDialogForm.tierIndex" style="width:100%" placeholder="请选择套餐">
+            <el-option v-for="(t, i) in tierEdit" :key="i" :label="t.name + ' (¥' + t.monthlyFee + '/月)'" :value="i" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="到期时间">
+          <el-date-picker
+            v-model="tierDialogForm.expiresAt"
+            type="datetime"
+            placeholder="选择到期时间"
+            value-format="x"
+            style="width:100%"
+          />
+          <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px">不选则默认为当前时间 +30 天</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="tierDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitTierConfig" :loading="tierDialogSaving">确认配置</el-button>
+      </template>
+    </el-dialog>
     <div v-show="tab === 'orders'" class="tab-panel">
         <div class="card fixed-card">
           <div class="card-header flex-between">
-            <h3>支付订单记录</h3>
+            <h3>支付记录</h3>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <el-input v-model="orderSearch" size="small" placeholder="用户名" style="width:120px" clearable @clear="loadPayOrders(1)" @keyup.enter="loadPayOrders(1)" />
               <el-input v-model="orderTier" size="small" placeholder="套餐" style="width:100px" clearable @clear="loadPayOrders(1)" @keyup.enter="loadPayOrders(1)" />
@@ -100,15 +134,16 @@
             </div>
           </div>
           <div class="card-body" style="padding:0;overflow:auto;flex:1">
-           <table v-if="payOrders.length">
-             <thead><tr><th>订单号</th><th>用户名</th><th>邮箱</th><th>套餐</th><th>金额</th><th>状态</th><th>时间</th></tr></thead>
+           <table v-if="payOrders.length" class="wide-table">
+             <thead><tr><th>订单号</th><th>用户名</th><th>邮箱</th><th>套餐</th><th>金额</th><th>来源</th><th>状态</th><th>时间</th></tr></thead>
              <tbody>
                <tr v-for="o in payOrders" :key="o.orderId">
-                 <td class="truncate" :title="o.orderId">{{ (o.orderId || '').substring(0, 14) }}...</td>
+                 <td class="order-cell" :title="o.orderId">{{ o.orderId }}</td>
                  <td>{{ o.username }}</td>
                  <td>{{ o.email }}</td>
                  <td>{{ o.tierName }}</td>
                  <td>¥{{ o.amount }}</td>
+                 <td><span class="source-tag" :class="o.source === 'redeem' ? 'source-redeem' : 'source-pay'">{{ o.source === 'redeem' ? '兑换码' : '支付' }}</span></td>
                  <td><span class="pay-tag" :class="payStatusClass(o)">{{ payStatusText(o) }}</span></td>
                  <td>{{ fmtTime(o.createdAt) }}</td>
                </tr>
@@ -120,12 +155,51 @@
        </div>
      </div>
 
+    <!-- ==================== 订单查询 ==================== -->
+    <div v-show="tab === 'allOrders'" class="tab-panel">
+        <div class="card fixed-card">
+          <div class="card-header flex-between">
+            <h3>订单查询</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <el-input v-model="allOrderSearch" size="small" placeholder="用户名" style="width:120px" clearable @clear="loadAllOrders(1)" @keyup.enter="loadAllOrders(1)" />
+              <el-select v-model="allOrderStatus" size="small" placeholder="状态" clearable style="width:100px" @change="loadAllOrders(1)">
+                <el-option label="已支付" value="paid" /><el-option label="待支付" value="pending" /><el-option label="创建失败" value="failed" />
+              </el-select>
+              <el-select v-model="allOrderSource" size="small" placeholder="来源" clearable style="width:100px" @change="loadAllOrders(1)">
+                <el-option label="支付" value="payment" /><el-option label="兑换码" value="redeem" />
+              </el-select>
+              <el-date-picker v-model="allOrderDateRange" type="daterange" size="small" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width:240px" @change="loadAllOrders(1)" />
+              <el-button size="small" type="primary" @click="loadAllOrders(1)">搜索</el-button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;overflow:auto;flex:1">
+           <table v-if="allOrders.length" class="wide-table">
+             <thead><tr><th>订单号</th><th>用户名</th><th>邮箱</th><th>套餐</th><th>金额</th><th>来源</th><th>状态</th><th>时间</th></tr></thead>
+             <tbody>
+               <tr v-for="o in allOrders" :key="o.orderId">
+                 <td class="order-cell" :title="o.orderId">{{ o.orderId }}</td>
+                 <td>{{ o.username }}</td>
+                 <td>{{ o.email }}</td>
+                 <td>{{ o.tierName }}</td>
+                 <td>¥{{ o.amount }}</td>
+                 <td><span class="source-tag" :class="o.source === 'redeem' ? 'source-redeem' : 'source-pay'">{{ o.source === 'redeem' ? '兑换码' : '支付' }}</span></td>
+                 <td><span class="pay-tag" :class="payStatusClass(o)">{{ payStatusText(o) }}</span></td>
+                 <td>{{ fmtTime(o.createdAt) }}</td>
+               </tr>
+             </tbody>
+           </table>
+           <div v-else class="empty">暂无订单</div>
+           <Pagination :page="allOrderPage" :total="allOrderTotal" :page-size="allOrderPs" @change="loadAllOrders" />
+         </div>
+       </div>
+     </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 import { get, post, put, del } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
@@ -142,9 +216,18 @@ const payPage = ref(1); const payTotal = ref(0); const payPs = 20
 const orderSearch = ref('')
 const orderTier = ref('')
 const orderDateRange = ref([])
+const allOrders = ref([])
+const allOrderPage = ref(1); const allOrderTotal = ref(0); const allOrderPs = 20
+const allOrderSearch = ref('')
+const allOrderStatus = ref('')
+const allOrderSource = ref('')
+const allOrderDateRange = ref([])
 const tierEdit = ref([])
 const savingTiers = ref(false); const genLoading = ref(false)
-const tierChanges = reactive({})
+const tierDialogVisible = ref(false)
+const tierDialogUser = ref(null)
+const tierDialogSaving = ref(false)
+const tierDialogForm = ref({ tierIndex: null, expiresAt: null })
 const dragFromIndex = ref(-1)
 const dragOverIndex = ref(-1)
 
@@ -166,7 +249,6 @@ async function loadUsers(p = 1) {
     summary.value = res.data.data.summary
     users.value = res.data.data.users.records
     total.value = res.data.data.users.total
-    users.value.forEach(u => { if (u.tierIndex !== undefined && !tierChanges[u.userId]) tierChanges[u.userId] = u.tierIndex })
   } catch (e) { toast.error(e.message) }
 }
 
@@ -215,14 +297,37 @@ async function generateBills() {
   finally { genLoading.value = false }
 }
 
-async function changeTier(userId) {
-  try { await put(`/api/admin/users/${userId}/tier`, { tierIndex: tierChanges[userId] }); toast.success('套餐已更改'); loadUsers(page.value) } catch (e) { toast.error(e.message) }
+function openTierDialog(user) {
+  tierDialogUser.value = user
+  tierDialogForm.value = { tierIndex: user.tierIndex, expiresAt: null }
+  tierDialogVisible.value = true
+}
+
+async function submitTierConfig() {
+  if (tierDialogForm.value.tierIndex === null) {
+    toast.error('请选择套餐')
+    return
+  }
+  tierDialogSaving.value = true
+  try {
+    const body = { tierIndex: tierDialogForm.value.tierIndex }
+    if (tierDialogForm.value.expiresAt) {
+      body.expiresAt = tierDialogForm.value.expiresAt
+    } else {
+      body.durationDays = 30
+    }
+    await post(`/api/admin/users/${tierDialogUser.value.userId}/subscription`, body)
+    toast.success('套餐配置成功')
+    tierDialogVisible.value = false
+    loadUsers(page.value)
+  } catch (e) { toast.error(e.message) }
+  finally { tierDialogSaving.value = false }
 }
 
 async function loadPayOrders(p = 1) {
   try {
     payPage.value = p
-    const params = { page: p, pageSize: payPs }
+    const params = { page: p, pageSize: payPs, status: 'paid' }
     if (orderSearch.value) params.search = orderSearch.value
     if (orderTier.value) params.tierName = orderTier.value
     if (orderDateRange.value?.length === 2) {
@@ -233,6 +338,29 @@ async function loadPayOrders(p = 1) {
     payOrders.value = res.data.data.orders
     payTotal.value = res.data.data.total
   } catch {}
+}
+
+async function loadAllOrders(p = 1) {
+  try {
+    allOrderPage.value = p
+    const params = { page: p, pageSize: allOrderPs }
+    if (allOrderSearch.value) params.search = allOrderSearch.value
+    if (allOrderStatus.value) params.status = allOrderStatus.value
+    if (allOrderSource.value) params.source = allOrderSource.value
+    if (allOrderDateRange.value?.length === 2) {
+      params.startDate = allOrderDateRange.value[0]
+      params.endDate = allOrderDateRange.value[1]
+    }
+    const res = await get('/api/admin/payment-orders', params)
+    allOrders.value = res.data.data.orders
+    allOrderTotal.value = res.data.data.total
+  } catch {}
+}
+
+function switchTab(t) {
+  tab.value = t
+  if (t === 'orders') loadPayOrders(1)
+  if (t === 'allOrders') loadAllOrders(1)
 }
 
 function payStatusClass(o) {
@@ -285,12 +413,16 @@ th { color: #94a3b8; font-weight: 600; font-size: 0.75rem; }
 tr.drag-over { background: #eef2ff; }
 tr[draggable]:hover { background: #f8fafc; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
-.truncate { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+.wide-table { min-width: 100%; border-collapse: collapse; white-space: nowrap; }
+.order-cell { font-family: 'Consolas', monospace; font-size: .8rem; }
 .pay-tag { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .72rem; font-weight: 600; }
 .pay-success { background: #dcfce7; color: #166534; }
 .pay-fail { background: #fee2e2; color: #991b1b; }
 .pay-expired { background: #fef3c7; color: #92400e; }
 .pay-pending { background: #e0e7ff; color: #3730a3; }
+.source-tag { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .72rem; font-weight: 600; }
+.source-redeem { background: #f3e8ff; color: #6b21a8; }
+.source-pay { background: #dbeafe; color: #1e40af; }
 .tab-panel { height: 100%; display: flex; flex-direction: column; }
 .fixed-card { display: flex; flex-direction: column; height: 100%; }
 .tab-content { height: calc(100vh - 400px); min-height: 400px; }

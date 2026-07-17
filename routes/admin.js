@@ -371,6 +371,17 @@ router.put('/users/:id/tier', async (req, res) => {
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
+// 管理员为用户配置任意套餐并设置到期时间
+router.post('/users/:id/subscription', async (req, res) => {
+  try {
+    const { tierIndex, durationDays, expiresAt } = req.body;
+    if (tierIndex === undefined) return res.status(400).json({ error: '缺少 tierIndex' });
+    const result = await billingService.adminSetSubscription(req.params.id, tierIndex, { durationDays, expiresAt });
+    await auditLog('subscription_admin_set', { userId: req.params.id, tierIndex, durationDays, expiresAt });
+    res.json({ success: true, data: result });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
 // ===== 兑换码管理 =====
 router.get('/redeem-codes', async (req, res) => {
   try {
@@ -458,17 +469,19 @@ router.put('/settings', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 支付订单记录（支持搜索：用户名、套餐、时间范围）
+// 支付订单记录（支持搜索：用户名、套餐、时间范围、状态、来源）
 router.get('/payment-orders', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const pageSize = Math.min(parseInt(req.query.pageSize) || 20, 100);
     const skip = (page - 1) * pageSize;
-    const { search, tierName, startDate, endDate } = req.query;
+    const { search, tierName, startDate, endDate, status, source } = req.query;
 
     // 构建查询条件
     const query = {};
     if (tierName) query.tierName = { $regex: tierName, $options: 'i' };
+    if (status) query.status = status;
+    if (source) query.source = source;
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate).getTime();
@@ -524,6 +537,7 @@ router.get('/payment-orders', async (req, res) => {
             tierName: o.tierName || '',
             amount: o.amount || 0,
             status: o.status,
+            source: o.source || 'payment',
             createdAt: o.createdAt,
             expiresAt: o.expiresAt,
           };
@@ -532,6 +546,46 @@ router.get('/payment-orders', async (req, res) => {
       },
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== 更新检测 =====
+const { execSync } = require('child_process');
+const path = require('path');
+const projectRoot = path.resolve(__dirname, '..');
+
+router.get('/check-update', async (req, res) => {
+  try {
+    // git fetch 获取远程最新信息
+    execSync('git fetch origin', { cwd: projectRoot, timeout: 15000, stdio: 'pipe' });
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot, encoding: 'utf8' }).trim();
+    const localHash = execSync('git rev-parse HEAD', { cwd: projectRoot, encoding: 'utf8' }).trim();
+    const remoteHash = execSync(`git rev-parse origin/${branch}`, { cwd: projectRoot, encoding: 'utf8' }).trim();
+    const behind = parseInt(execSync(`git rev-list --count HEAD..origin/${branch}`, { cwd: projectRoot, encoding: 'utf8' }).trim()) || 0;
+    // 获取日期
+    const localDate = execSync('git log -1 --format=%ci', { cwd: projectRoot, encoding: 'utf8' }).trim();
+    const remoteDate = behind > 0 ? execSync(`git log -1 --format=%ci origin/${branch}`, { cwd: projectRoot, encoding: 'utf8' }).trim() : localDate;
+    // 获取更新日志
+    let changelog = '';
+    if (behind > 0) {
+      changelog = execSync(`git log --oneline -5 HEAD..origin/${branch}`, { cwd: projectRoot, encoding: 'utf8' }).trim();
+    }
+    res.json({ success: true, data: { hasUpdate: behind > 0, behind, branch, local: localHash.substring(0, 7), remote: remoteHash.substring(0, 7), localDate, remoteDate, changelog } });
+  } catch (e) {
+    res.status(500).json({ error: '检测失败: ' + (e.stderr || e.message || '') });
+  }
+});
+
+router.post('/update', async (req, res) => {
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot, encoding: 'utf8' }).trim();
+    const result = execSync(`git pull origin ${branch}`, { cwd: projectRoot, encoding: 'utf8', timeout: 30000 });
+    await auditLog('system_update', { branch, output: result });
+    // 更新成功后退出进程，由 Docker 或进程管理器自动重启
+    res.json({ success: true, data: { message: '更新完成，服务即将重启...', output: result } });
+    setTimeout(() => process.exit(0), 1000);
+  } catch (e) {
+    res.status(500).json({ error: '更新失败: ' + (e.stderr || e.message || '') });
+  }
 });
 
 module.exports = router;

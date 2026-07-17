@@ -86,7 +86,7 @@ const settingsService = require('./services/settingsService');
 app.get('/api/site-info', async (req, res) => {
   try {
     const settings = await settingsService.getSettings();
-    res.json({ success: true, data: { name: settings.siteName, title: settings.siteTitle, description: settings.siteDescription, paymentUrl: settings.paymentUrl } });
+    res.json({ success: true, data: { name: settings.siteName, title: settings.siteTitle, description: settings.siteDescription, paymentUrl: settings.paymentUrl, redeemPurchaseUrl: settings.redeemPurchaseUrl } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

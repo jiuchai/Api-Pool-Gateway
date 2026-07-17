@@ -13,5 +13,5 @@ api.interceptors.response.use(r => r, e => {
 export function get(url, params) { return api.get(url, { params }) }
 export function post(url, data) { return api.post(url, data) }
 export function put(url, data) { return api.put(url, data) }
-export function del(url) { return api.delete(url) }
+export function del(url, data) { return api.delete(url, { data }) }
 export default api

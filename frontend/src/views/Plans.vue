@@ -90,11 +90,10 @@
           </ol>
         </div>
       </div>
-      <div v-else class="card purchase-guide" style="margin-top:24px">
-        <div class="card-header"><h3>购买说明</h3></div>
-        <div class="card-body">
-          <p style="color:#64748b;font-size:.85rem">管理员暂未配置支付跳转地址，购买后直接开通。如需接入外部支付，请在管理后台「服务管理 → 设置」中配置支付跳转地址和回调密钥。</p>
-        </div>
+
+      <!-- 兑换码入口 -->
+      <div v-if="redeemPurchaseUrl" style="margin-top:24px;text-align:center">
+        <el-button type="warning" size="default" @click="goRedeem">去获取兑换码</el-button>
       </div>
     </template>
 
@@ -111,6 +110,7 @@ const loading = ref(true)
 const tiers = ref([])
 const subscriptions = ref([])
 const paymentUrl = ref('')
+const redeemPurchaseUrl = ref('')
 const purchasing = ref(-1)
 
 async function loadData() {
@@ -123,6 +123,7 @@ async function loadData() {
     tiers.value = tiersRes.data.data.tiers
     subscriptions.value = subsRes.data.data
     paymentUrl.value = siteRes.data.data.paymentUrl || ''
+    redeemPurchaseUrl.value = siteRes.data.data.redeemPurchaseUrl || ''
   } catch (e) { toast.error('加载套餐失败') }
   finally { loading.value = false }
 }
@@ -131,26 +132,23 @@ function isSubscribed(index) {
   return subscriptions.value.some(s => s.tierIndex === index)
 }
 
+function goRedeem() {
+  window.open(redeemPurchaseUrl.value, '_blank')
+}
+
 async function purchase(t) {
-  if (paymentUrl.value) {
-    try {
-      purchasing.value = t.index
-      const res = await post('/api/billing/create-payment', { tierIndex: t.index, durationDays: 30 })
-      const { orderId } = res.data.data
-      const url = `${paymentUrl.value}${paymentUrl.value.includes('?') ? '&' : '?'}orderId=${orderId}`
-      window.open(url, '_blank')
-      toast.info('已跳转到支付页面，支付完成后将自动开通')
-    } catch (e) { toast.error(e.message || '创建支付失败') }
-    finally { purchasing.value = -1 }
+  if (!paymentUrl.value) {
+    toast.error('管理员未配置支付地址，无法购买')
     return
   }
-  // 没有配置支付地址，直接开通
   try {
     purchasing.value = t.index
-    const res = await post('/api/billing/subscribe', { tierIndex: t.index, durationDays: 30 })
-    toast.success(res.data.data.message)
-    await loadData()
-  } catch (e) { toast.error(e.message || '购买失败') }
+    const res = await post('/api/billing/create-payment', { tierIndex: t.index, durationDays: 30 })
+    const { orderId } = res.data.data
+    const url = `${paymentUrl.value}${paymentUrl.value.includes('?') ? '&' : '?'}orderId=${orderId}`
+    window.open(url, '_blank')
+    toast.info('已跳转到支付页面，支付完成后将自动开通')
+  } catch (e) { toast.error(e.message || '创建支付失败') }
   finally { purchasing.value = -1 }
 }
 

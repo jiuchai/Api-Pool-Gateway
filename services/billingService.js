@@ -186,6 +186,44 @@ const billingService = {
     return { message: '套餐已更新', tierIndex };
   },
 
+  /** 管理员主动为用户配置任意套餐及到期时间 */
+  async adminSetSubscription(userId, tierIndex, opts = {}) {
+    const tiers = await tierService._getRawTiers();
+    if (tierIndex < 0 || tierIndex >= tiers.length) throw { status: 400, message: '无效的套餐' };
+    const user = await db.users.findOne({ _id: userId });
+    if (!user) throw { status: 404, message: '用户不存在' };
+
+    const now = new Date();
+    const { durationDays, expiresAt } = opts;
+
+    let expireTime;
+    if (expiresAt) {
+      // 直接指定到期时间戳
+      expireTime = typeof expiresAt === 'number' ? expiresAt : new Date(expiresAt).getTime();
+      if (expireTime <= now.getTime()) throw { status: 400, message: '到期时间必须在当前时间之后' };
+    } else {
+      const days = durationDays || 30;
+      expireTime = addDays(now, days).getTime();
+    }
+
+    const sub = {
+      userId, tierIndex,
+      startedAt: now.getTime(),
+      expiresAt: expireTime,
+      durationDays: Math.ceil((expireTime - now.getTime()) / 86400000),
+      createdAt: now.getTime(),
+      source: 'admin',
+    };
+    await db.userSubscriptions.insert(sub);
+
+    // 更新用户当前套餐
+    const tier = tiers[tierIndex];
+    await db.users.update({ _id: userId }, { $set: { tierIndex, 'rateLimit.perSecond': tier.ratePerSecond, updatedAt: Date.now() } });
+    await db.billingRecords.update({ userId, month: getCurrentMonth() }, { $set: { tierIndex } }, { upsert: true });
+
+    return { message: '套餐已配置', tierIndex, tierName: tier.name, expiresAt: formatDateTime(expireTime) };
+  },
+
   async getBillingConfig() {
     return await tierService.getTiers();
   },
@@ -215,11 +253,25 @@ const billingService = {
     const records = await db.billingRecords.find({ month: monthStr }).sort({ callCount: -1 }).skip(skip).limit(pageSize);
     const total = await db.billingRecords.count({ month: monthStr });
     const tiers = await tierService._getRawTiers();
+    const now = getNow();
     const result = [];
     for (const record of records) {
       const user = await db.users.findOne({ _id: record.userId });
       const tier = tiers[record.tierIndex] || tiers[0];
-      result.push({ userId: record.userId, username: user ? user.username : '未知', disabled: user ? user.disabled : false, month: record.month, callCount: record.callCount, tierIndex: record.tierIndex, cost: tier.monthlyFee, tierName: tier.name });
+      // 获取用户订阅到期时间
+      const subs = await db.userSubscriptions.find({ userId: record.userId, expiresAt: { $gte: now } }).sort({ expiresAt: -1 });
+      const expiryDates = subs.map(s => ({
+        tierIndex: s.tierIndex,
+        tierName: tiers[s.tierIndex]?.name || '',
+        expiresAt: s.expiresAt,
+        expiresDate: formatDate(s.expiresAt),
+      }));
+      result.push({
+        userId: record.userId, username: user ? user.username : '未知', disabled: user ? user.disabled : false,
+        month: record.month, callCount: record.callCount, tierIndex: record.tierIndex,
+        cost: tier.monthlyFee, tierName: tier.name,
+        subscriptions: expiryDates,
+      });
     }
     return { records: result, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   },

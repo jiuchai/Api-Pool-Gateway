@@ -4,6 +4,9 @@
       <div class="hero-icon">🎁</div>
       <h1 class="page-title">兑换码</h1>
       <p class="page-subtitle">输入兑换码激活套餐，畅享 API 服务</p>
+      <div v-if="redeemPurchaseUrl" style="margin-top:12px">
+        <el-button type="warning" size="default" @click="goPurchase">去获取兑换码</el-button>
+      </div>
     </div>
 
     <div class="card redeem-card">
@@ -33,14 +36,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { post } from '@/api/client'
+import { ref, onMounted } from 'vue'
+import { get, post } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
 
 const toast = useToastStore()
 const code = ref('')
 const loading = ref(false)
 const result = ref(null)
+const redeemPurchaseUrl = ref('')
 
 async function handleRedeem() {
   if (!code.value.trim()) return
@@ -53,6 +57,17 @@ async function handleRedeem() {
   } catch (e) { result.value = { success: false, message: e.message || '兑换失败' } }
   finally { loading.value = false }
 }
+
+function goPurchase() {
+  window.open(redeemPurchaseUrl.value, '_blank')
+}
+
+onMounted(async () => {
+  try {
+    const res = await get('/api/site-info')
+    redeemPurchaseUrl.value = res.data.data.redeemPurchaseUrl || ''
+  } catch {}
+})
 </script>
 
 <style scoped>

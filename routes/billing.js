@@ -141,19 +141,6 @@ router.get('/subscriptions', async (req, res) => {
   } catch (err) { res.status(err.status || 500).json({ error: err.message || '获取订阅失败' }); }
 });
 
-router.post('/subscribe', async (req, res) => {
-  try {
-    const { tierIndex, durationDays } = req.body;
-    const result = await billingService.subscribeTier(req.user._id, tierIndex, durationDays);
-    const tiers = await tierService._getRawTiers();
-    const tier = tiers[tierIndex];
-    if (tier && tier.ratePerSecond !== undefined) {
-      await db.users.update({ _id: req.user._id }, { $set: { 'rateLimit.perSecond': tier.ratePerSecond, updatedAt: Date.now() } });
-    }
-    res.json({ success: true, data: result });
-  } catch (err) { res.status(err.status || 500).json({ error: err.message || '订阅失败' }); }
-});
-
 router.put('/active-subscription', async (req, res) => {
   try {
     const { subscriptionId, tierIndex } = req.body;
@@ -188,6 +175,7 @@ router.get('/payment-history', async (req, res) => {
         tierName: o.tierName || '',
         amount: o.amount || 0,
         status: o.status,
+        source: o.source || 'payment',
         createdAt: o.createdAt,
         expiresAt: o.expiresAt,
       })),

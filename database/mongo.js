@@ -129,6 +129,7 @@ const redeemCodeSchema = new mongoose.Schema({
   code:           { type: String, required: true },
   type:           { type: String },
   tierIndex:      { type: Number },
+  batchName:      { type: String, default: '' },
   maxUses:        { type: Number, default: 1 },
   usedCount:      { type: Number, default: 0 },
   expiresAt:      { type: Number, default: null },
@@ -174,18 +175,20 @@ const settingsSchema = new mongoose.Schema({
   paymentUrl:     { type: String, default: '' },
   paymentNotifyUrl: { type: String, default: '' },
   paymentWebhookSecret: { type: String, default: '' },
+  redeemPurchaseUrl: { type: String, default: '' },
   updatedAt:      { type: Number, default: Date.now },
 });
 
 const paymentTokenSchema = new mongoose.Schema({
   orderId:       { type: String, required: true, unique: true },
-  secretKey:     { type: String, required: true },
+  secretKey:     { type: String, default: '' },
   userId:        { type: String, required: true },
   tierIndex:     { type: Number, required: true },
   durationDays:  { type: Number, default: 30 },
   amount:        { type: Number, default: 0 },
   tierName:      { type: String, default: '' },
   status:        { type: String, default: 'pending' },
+  source:        { type: String, default: 'payment' },
   expiresAt:     { type: Number, required: true },
   createdAt:     { type: Number, default: Date.now },
 });
@@ -361,6 +364,8 @@ async function ensureIndexes() {
   await BillingRecord.collection.createIndex({ userId: 1, month: 1 }, { unique: true }).catch(() => {});
   // Bills: userId + month compound
   await Bill.collection.createIndex({ userId: 1, month: 1 }, { unique: true }).catch(() => {});
+  // 清理旧版残留的 token_1 唯一索引（会导致无 token 字段的文档插入失败）
+  await PaymentToken.collection.dropIndex('token_1').catch(() => {});
 }
 
 module.exports = { db, ensureIndexes, connect, mongoose };

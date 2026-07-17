@@ -7,6 +7,7 @@ const DEFAULTS = {
   paymentUrl: '',
   paymentNotifyUrl: '',
   paymentWebhookSecret: process.env.PAYMENT_WEBHOOK_SECRET || 'my-pay-secret',
+  redeemPurchaseUrl: '',
 };
 
 async function getSettings() {
@@ -19,7 +20,7 @@ async function getSettings() {
 }
 
 async function saveSettings(data) {
-  const allowed = ['siteName', 'siteDescription', 'siteTitle', 'paymentUrl', 'paymentNotifyUrl', 'paymentWebhookSecret'];
+  const allowed = ['siteName', 'siteDescription', 'siteTitle', 'paymentUrl', 'paymentNotifyUrl', 'paymentWebhookSecret', 'redeemPurchaseUrl'];
   const update = {};
   for (const key of allowed) {
     if (data[key] !== undefined) update[key] = data[key];
