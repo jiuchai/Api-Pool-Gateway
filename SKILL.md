@@ -139,14 +139,14 @@ Content-Type: multipart/form-data
   "statusCode": 200,
   "data": {
     "type": "file",
-    "url": "/api/downloads/abc-123.mp3",
+    "url": "{BASE_URL}api/downloads/abc-123.mp3",
     "contentType": "audio/mpeg",
     "size": 12345
   },
   "meta": { "service": "...", "upstreamStatus": 200 }
 }
 ```
-> 文件类响应需用 `GET {BASE_URL}{data.url}` 下载。
+> 文件类响应需用 `GET {data.url}` 下载。
 
 ---
 

@@ -95,7 +95,8 @@ router.get('/tools/:slug', async (req, res) => {
         slug: service.slug,
         description: service.description,
         category: service.category || '',
-        method: 'POST',
+        method: service.method || 'POST',
+        forwardType: service.forwardType || 'json',
         endpoint: `/api/gateway/${service.slug}`,
         parameters: (service.params || []).map(p => ({
           name: p.name,

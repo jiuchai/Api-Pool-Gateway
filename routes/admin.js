@@ -593,7 +593,11 @@ router.post('/update', async (req, res) => {
     } catch {}
     await auditLog('system_update', { branch, output: result, npm: npmOut, frontend: frontOut });
     res.json({ success: true, data: { message: '更新完成，服务即将重启...', output: result } });
-    setTimeout(() => process.exit(0), 1000);
+    // 等响应完全发出后再退出
+    setTimeout(() => {
+      console.log('[更新] 正在重启服务...');
+      process.exit(0);
+    }, 3000);
   } catch (e) {
     res.status(500).json({ error: '更新失败: ' + (e.stderr || e.message || '') });
   }
