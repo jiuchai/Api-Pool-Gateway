@@ -31,6 +31,11 @@ COPY utils/ ./utils/
 COPY SKILL.md ./
 # Git repo for update check
 COPY .git/ ./.git/
+# Frontend source (for live update rebuild)
+COPY frontend/package.json frontend/package-lock.json* ./frontend/
+COPY frontend/vite.config.* frontend/index.html ./frontend/
+COPY frontend/src/ ./frontend/src/
+COPY frontend/public/ ./frontend/public/
 
 # Frontend: copy both pre-built and freshly-built, choose at build time
 COPY --from=frontend-builder /app/frontend/dist /tmp/frontend-dist

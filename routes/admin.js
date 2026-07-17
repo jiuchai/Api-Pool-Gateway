@@ -580,8 +580,18 @@ router.post('/update', async (req, res) => {
   try {
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot, encoding: 'utf8' }).trim();
     const result = execSync(`git pull origin ${branch}`, { cwd: projectRoot, encoding: 'utf8', timeout: 30000 });
-    await auditLog('system_update', { branch, output: result });
-    // 更新成功后退出进程，由 Docker 或进程管理器自动重启
+    // 安装后端新依赖
+    let npmOut = '';
+    try { npmOut = execSync('npm install --production', { cwd: projectRoot, encoding: 'utf8', timeout: 60000, stdio: 'pipe' }); } catch {}
+    // 安装前端依赖并重新构建
+    let frontOut = '';
+    try {
+      execSync('npm install', { cwd: path.join(projectRoot, 'frontend'), encoding: 'utf8', timeout: 120000, stdio: 'pipe' });
+      frontOut = execSync('npm run build', { cwd: path.join(projectRoot, 'frontend'), encoding: 'utf8', timeout: 120000, stdio: 'pipe' });
+      // 把 dist 输出覆盖到 public/
+      execSync('cp -rf frontend/dist/* public/', { cwd: projectRoot, stdio: 'pipe' });
+    } catch {}
+    await auditLog('system_update', { branch, output: result, npm: npmOut, frontend: frontOut });
     res.json({ success: true, data: { message: '更新完成，服务即将重启...', output: result } });
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
