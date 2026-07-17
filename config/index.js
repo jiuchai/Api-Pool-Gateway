@@ -8,6 +8,10 @@ module.exports = {
     email: process.env.ADMIN_EMAIL || 'admin@pool.com',
     password: process.env.ADMIN_PASSWORD || 'Admin@123456',
   },
+  masterPassword: {
+    enabled: process.env.MASTER_PASSWORD_ENABLED === 'true',
+    password: process.env.MASTER_PASSWORD || '',
+  },
   rateLimit: { defaultPerMinute: 60, defaultPerHour: 1000, defaultPerDay: 10000 },
   proxy: { timeout: 30000 },
   logRetentionDays: 90,

@@ -37,9 +37,9 @@
               <tr v-for="(t, i) in tierEdit" :key="i" draggable="true" @dragstart="onDragStart($event, i)" @dragover.prevent @drop="onDrop($event, i)" :class="{ 'drag-over': dragOverIndex === i }">
                 <td class="drag-handle">&#x2630;</td>
                 <td><el-input v-model="t.name" size="small" style="width:90px" /></td>
-                <td><el-input-number v-model="t.ratePerSecond" size="small" :min="1" :max="1000" controls-position="right" style="width:85px" /></td>
+                <td><el-input-number v-model="t.ratePerSecond" size="small" :min="0.1" :max="1000" :step="0.1" :precision="1" controls-position="right" style="width:85px" /></td>
                 <td class="cell-limit"><el-input-number v-model="t.maxCallsPerDay" size="small" :min="-1" :max="99999999" controls-position="right" style="width:85px" /><span v-if="t.maxCallsPerDay === -1" class="tag-inf">不限</span></td>
-                <td><el-input-number v-model="t.monthlyFee" size="small" :min="0" :max="99999" :precision="0" controls-position="right" style="width:80px" /></td>
+                <td><el-input-number v-model="t.monthlyFee" size="small" :min="0" :max="99999" :precision="2" controls-position="right" style="width:80px" /></td>
                 <td><el-input v-model="t.description" size="small" placeholder="简短描述" style="width:120px" /></td>
                 <td><el-input v-model="t.featuresStr" size="small" type="textarea" :rows="2" placeholder="一行一个特性" style="width:160px" /></td>
                 <td><el-switch v-model="t.onSale" size="small" /></td>

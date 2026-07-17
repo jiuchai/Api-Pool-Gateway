@@ -13,7 +13,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(creds) { const r = await api.post('/api/auth/login', creds); setAuth(r.data.data.token, r.data.data.user); return r.data.data }
   async function register(f) { const r = await api.post('/api/auth/register', f); setAuth(r.data.data.token, r.data.data.user); return r.data.data }
-  async function fetchProfile() { const r = await api.get('/api/auth/profile'); user.value = { ...user.value, ...r.data.data }; return r.data.data }
+  async function fetchProfile() { const r = await api.get('/api/auth/profile'); user.value = { ...user.value, ...r.data.data }; localStorage.setItem('user', JSON.stringify(user.value)); return r.data.data }
+  async function updateProfile(data) { const r = await api.put('/api/auth/profile', data); user.value = { ...user.value, ...r.data.data }; localStorage.setItem('user', JSON.stringify(user.value)); return r.data.data }
   function logout() { clear() }
 
   return { token, user, isLoggedIn, isAdmin, login, register, fetchProfile, logout }

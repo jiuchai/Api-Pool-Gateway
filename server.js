@@ -18,6 +18,7 @@ const tierService = require('./services/tierService');
 const { auditLog } = require('./middleware/logger');
 
 const app = express();
+app.set('trust proxy', true);
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'] }));

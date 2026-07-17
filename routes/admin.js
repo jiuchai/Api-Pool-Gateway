@@ -143,6 +143,22 @@ router.put('/users/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 管理员重置用户密码
+router.post('/users/:id/reset-password', async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword) return res.status(400).json({ error: '请输入新密码' });
+    const { isStrongPassword } = require('../utils/helpers');
+    if (!isStrongPassword(newPassword)) return res.status(400).json({ error: '密码至少8位含大小写字母和数字' });
+    const bcrypt = require('bcryptjs');
+    const config = require('../config');
+    const hash = await bcrypt.hash(newPassword, config.bcryptSaltRounds);
+    await db.users.update({ _id: req.params.id }, { $set: { password: hash, updatedAt: Date.now() } });
+    await auditLog('user_password_reset', { userId: req.params.id, by: req.user._id });
+    res.json({ success: true, data: { message: '密码已重置' } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== 日志 =====
 router.get('/logs', async (req, res) => {
   try {
