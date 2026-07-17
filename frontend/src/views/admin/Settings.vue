@@ -113,8 +113,14 @@ async function doUpdate() {
   try {
     await post('/api/admin/update')
     toast.success('更新完成，服务正在重启...')
+    setTimeout(() => location.reload(), 4000)
   } catch (e) {
     updateError.value = e.message || '更新失败'
+    // 服务重启导致连接中断，自动刷新
+    if (!e.status || e.status === 0 || e.status >= 500) {
+      toast.success('更新完成，即将自动刷新...')
+      setTimeout(() => location.reload(), 3000)
+    }
   } finally { updating.value = false }
 }
 </script>
