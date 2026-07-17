@@ -8,7 +8,8 @@
     "dev": "node server.js",
     "frontend": "cd frontend && npx vite --host",
     "dev:all": "concurrently -n backend,frontend -c blue,green \"node server.js\" \"cd frontend && npx vite --host\"",
-    "pay-server": "node payserver-dome/server.js"
+    "pay-server": "node payserver-dome/server.js",
+    "ezfpy-server": "node payserver-dome/ezfpy-server.js"
   },
   "dependencies": {
     "axios": "^1.6.2",
