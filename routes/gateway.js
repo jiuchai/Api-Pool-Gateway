@@ -31,6 +31,7 @@ router.post('/:slug', apiKeyAuth, createRateLimiter(), upload.any(), callLogger,
   try {
     // 检查该 Key 是否有权限调用此服务
     if (req.apiKey.services && req.apiKey.services.length > 0 && !req.apiKey.services.includes(req.params.slug)) {
+      await rollbackRateLimit(req);
       return res.status(403).json({ error: '该 API Key 未授权调用此服务' });
     }
     const params = { ...req.body };
