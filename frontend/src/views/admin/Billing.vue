@@ -32,16 +32,16 @@
         </div>
         <div class="card-body" style="overflow:auto;flex:1">
           <table>
-            <thead><tr><th style="width:30px"></th><th style="width:90px">名称</th><th style="width:80px">速率(次/秒)</th><th style="width:90px">日上限</th><th style="width:80px">月费(¥)</th><th style="width:120px">描述</th><th style="width:160px">特性（一行一个）</th><th style="width:60px">开售</th><th style="width:60px">操作</th></tr></thead>
+            <thead><tr><th style="width:30px"></th><th style="width:100px">名称</th><th style="width:100px">速率(次/秒)</th><th style="width:100px">日上限</th><th style="width:90px">月费(¥)</th><th style="width:140px">描述</th><th style="width:180px">特性（一行一个）</th><th style="width:70px">开售</th><th style="width:70px">操作</th></tr></thead>
             <tbody>
-              <tr v-for="(t, i) in tierEdit" :key="i" draggable="true" @dragstart="onDragStart($event, i)" @dragover.prevent @drop="onDrop($event, i)" :class="{ 'drag-over': dragOverIndex === i }">
+              <tr v-for="(t, i) in tierEdit" :key="i" draggable="true" @dragstart="onDragStart($event, i)" @mousedown="onRowMouseDown($event)" @dragover.prevent @drop="onDrop($event, i)" :class="{ 'drag-over': dragOverIndex === i }">
                 <td class="drag-handle">&#x2630;</td>
-                <td><el-input v-model="t.name" size="small" style="width:90px" /></td>
-                <td><el-input-number v-model="t.ratePerSecond" size="small" :min="0.1" :max="1000" :step="0.1" :precision="1" controls-position="right" style="width:85px" /></td>
-                <td class="cell-limit"><el-input-number v-model="t.maxCallsPerDay" size="small" :min="-1" :max="99999999" controls-position="right" style="width:85px" /><span v-if="t.maxCallsPerDay === -1" class="tag-inf">不限</span></td>
-                <td><el-input-number v-model="t.monthlyFee" size="small" :min="0" :max="99999" :precision="2" controls-position="right" style="width:80px" /></td>
-                <td><el-input v-model="t.description" size="small" placeholder="简短描述" style="width:120px" /></td>
-                <td><el-input v-model="t.featuresStr" size="small" type="textarea" :rows="2" placeholder="一行一个特性" style="width:160px" /></td>
+                <td><el-input v-model="t.name" size="small" style="width:100px" /></td>
+                <td><el-input-number v-model="t.ratePerSecond" size="small" :min="0.1" :max="1000" :step="0.1" :precision="1" controls-position="right" style="width:100px" /></td>
+                <td class="cell-limit"><el-input-number v-model="t.maxCallsPerDay" size="small" :min="-1" :max="99999999" controls-position="right" style="width:100px" /><span v-if="t.maxCallsPerDay === -1" class="tag-inf">不限</span></td>
+                <td><el-input-number v-model="t.monthlyFee" size="small" :min="0" :max="99999" :precision="2" controls-position="right" style="width:90px" /></td>
+                <td><el-input v-model="t.description" size="small" placeholder="简短描述" style="width:140px" /></td>
+                <td><el-input v-model="t.featuresStr" size="small" type="textarea" :rows="2" placeholder="一行一个特性" style="width:180px" /></td>
                 <td><el-switch v-model="t.onSale" size="small" /></td>
                 <td><el-button size="small" type="danger" :icon="Delete" circle @click="removeTier(i)" :disabled="tierEdit.length <= 1" /></td>
               </tr>
@@ -133,7 +133,8 @@
               <el-button size="small" type="primary" @click="loadPayOrders(1)">搜索</el-button>
             </div>
           </div>
-          <div class="card-body" style="padding:0;overflow:auto;flex:1">
+          <div class="card-body" style="padding:0;flex:1;display:flex;flex-direction:column;min-height:0">
+           <div class="table-area">
            <table v-if="payOrders.length" class="wide-table">
              <thead><tr><th>订单号</th><th>用户名</th><th>邮箱</th><th>套餐</th><th>金额</th><th>来源</th><th>状态</th><th>时间</th></tr></thead>
              <tbody>
@@ -150,7 +151,8 @@
              </tbody>
            </table>
            <div v-else class="empty">暂无支付记录</div>
-           <Pagination :page="payPage" :total="payTotal" :page-size="payPs" @change="loadPayOrders" />
+           </div>
+           <div class="pager-wrap"><Pagination :page="payPage" :total="payTotal" :page-size="payPs" @change="loadPayOrders" /></div>
          </div>
        </div>
      </div>
@@ -172,7 +174,8 @@
               <el-button size="small" type="primary" @click="loadAllOrders(1)">搜索</el-button>
             </div>
           </div>
-          <div class="card-body" style="padding:0;overflow:auto;flex:1">
+          <div class="card-body" style="padding:0;flex:1;display:flex;flex-direction:column;min-height:0">
+           <div class="table-area">
            <table v-if="allOrders.length" class="wide-table">
              <thead><tr><th>订单号</th><th>用户名</th><th>邮箱</th><th>套餐</th><th>金额</th><th>来源</th><th>状态</th><th>时间</th></tr></thead>
              <tbody>
@@ -189,7 +192,8 @@
              </tbody>
            </table>
            <div v-else class="empty">暂无订单</div>
-           <Pagination :page="allOrderPage" :total="allOrderTotal" :page-size="allOrderPs" @change="loadAllOrders" />
+           </div>
+           <div class="pager-wrap"><Pagination :page="allOrderPage" :total="allOrderTotal" :page-size="allOrderPs" @change="loadAllOrders" /></div>
          </div>
        </div>
      </div>
@@ -231,8 +235,15 @@ const tierDialogSaving = ref(false)
 const tierDialogForm = ref({ tierIndex: null, expiresAt: null })
 const dragFromIndex = ref(-1)
 const dragOverIndex = ref(-1)
+const dragFromHandle = ref(false)
 
-function onDragStart(e, index) { dragFromIndex.value = index; e.dataTransfer.effectAllowed = 'move' }
+function onRowMouseDown(e) {
+  dragFromHandle.value = !!e.target.closest('.drag-handle')
+}
+function onDragStart(e, index) {
+  if (!dragFromHandle.value) { e.preventDefault(); return; }
+  dragFromIndex.value = index; e.dataTransfer.effectAllowed = 'move'
+}
 function onDrop(e, toIndex) {
   dragOverIndex.value = -1;
   if (dragFromIndex.value < 0 || dragFromIndex.value === toIndex) return;
@@ -382,7 +393,7 @@ onMounted(() => { loadTiers(); loadUsers(); loadPayOrders() })
 </script>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 24px; min-height: calc(100vh - 60px); display: flex; flex-direction: column; }
+.container { max-width: 1300px; margin: 0 auto; padding: 24px; min-height: calc(100vh - 60px); display: flex; flex-direction: column; }
 .page-title { font-size: 1.5rem; margin-bottom: 20px; flex-shrink: 0; }
 .tab-bar { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; flex-shrink: 0; }
 .tab { padding: 10px 24px; font-size: .9rem; border: none; background: none; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
@@ -398,6 +409,10 @@ onMounted(() => { loadTiers(); loadUsers(); loadPayOrders() })
 .card-header { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; }
 .card-header h3 { font-size: 1rem; }
 .card-body { padding: 20px; }
+.table-area { flex: 1; overflow-y: auto; min-height: 0; }
+.table-area thead { position: sticky; top: 0; z-index: 1; }
+.table-area th { background: #fff; }
+.pager-wrap { padding: 12px 0 8px; border-top: 1px solid #f1f5f9; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #1e293b; }
 th { color: #94a3b8; font-weight: 600; font-size: 0.75rem; }
@@ -428,5 +443,9 @@ tr[draggable]:hover { background: #f8fafc; }
 .fixed-card { display: flex; flex-direction: column; height: 100%; }
 .tab-content { height: calc(100vh - 400px); min-height: 400px; }
 .card-body { padding: 20px; }
+.table-area { flex: 1; overflow-y: auto; min-height: 0; }
+.table-area thead { position: sticky; top: 0; z-index: 1; }
+.table-area th { background: #fff; }
+.pager-wrap { padding: 12px 0 8px; border-top: 1px solid #f1f5f9; }
 .card-body table { min-width: 600px; }
 </style>

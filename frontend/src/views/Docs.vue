@@ -10,6 +10,12 @@
             <a v-for="s in cat.services" :key="s.slug" :href="'#'+s.slug" :class="['nav-item', { active: activeSlug === s.slug }]" @click.prevent="scrollTo(s.slug)">{{ s.name }}</a>
           </template>
         </nav>
+        <nav v-else class="sk-nav">
+          <div class="sk-cat"></div>
+          <div class="sk-item" v-for="i in 4" :key="i" :style="{ width: (80 - i * 10) + '%' }"></div>
+          <div class="sk-cat"></div>
+          <div class="sk-item" v-for="i in 3" :key="i+10" :style="{ width: (75 - i * 10) + '%' }"></div>
+        </nav>
       </aside>
 
       <!-- 右侧内容 -->
@@ -40,7 +46,14 @@
           </div>
         </div>
 
-        <div v-if="loading" style="text-align:center;padding:40px;color:#94a3b8">加载中...</div>
+        <div v-if="loading" class="sk-content">
+          <div class="sk-card" v-for="i in 2" :key="i">
+            <div class="sk-line" style="width:30%;height:20px;margin-bottom:16px"></div>
+            <div class="sk-line" style="width:70%;height:14px;margin-bottom:8px"></div>
+            <div class="sk-line" style="width:50%;height:14px;margin-bottom:16px"></div>
+            <div class="sk-code"></div>
+          </div>
+        </div>
         <template v-else>
           <div class="card" v-for="(cat, i) in categories" :key="i">
             <div class="cat-title">{{ cat.name || '未分类' }}</div>
@@ -137,4 +150,12 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left
 pre{background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;font-size:.82rem;line-height:1.6;max-height:300px;overflow-y:auto}
 pre code{font-family:'Consolas',monospace;background:none;padding:0;font-size:inherit}
 @media(max-width:768px){.docs-layout{flex-direction:column}.sidebar{width:100%;position:static;max-height:none}}
+.sk-nav{padding:4px 0}
+.sk-cat{height:16px;width:60px;border-radius:4px;margin:10px 0 6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.sk-item{height:12px;border-radius:4px;margin-bottom:8px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.sk-content{display:flex;flex-direction:column;gap:16px}
+.sk-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px}
+.sk-line{border-radius:4px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.sk-code{height:120px;border-radius:8px;margin-top:8px;background:linear-gradient(90deg,#cbd5e1 25%,#e2e8f0 50%,#cbd5e1 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 </style>

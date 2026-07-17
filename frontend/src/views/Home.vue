@@ -15,12 +15,16 @@
         <router-link to="/register" class="btn btn-primary btn-lg">免费注册</router-link>
         <router-link to="/docs" class="btn btn-outline btn-lg">查看服务</router-link>
       </div>
+      <div class="scroll-hint" :class="{ hide: servicesVisible }">
+        <span>向下滚动</span>
+        <div class="scroll-arrow"></div>
+      </div>
     </section>
 
-    <section class="services container" v-if="services.length">
+    <section class="services container" v-if="services.length" :class="{ visible: servicesVisible }">
       <h2>可用服务</h2>
       <div class="service-grid">
-        <div class="scard" v-for="s in services" :key="s.slug">
+        <div class="scard" v-for="(s, i) in services" :key="s.slug" :style="{ transitionDelay: i * 0.06 + 's' }">
           <div class="scat">{{ s.category }}</div>
           <h3>{{ s.name }}</h3>
           <p>{{ s.description }}</p>
@@ -49,15 +53,22 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted } from 'vue'; import { get } from '@/api/client'
+import { ref, onMounted, onUnmounted } from 'vue'; import { get } from '@/api/client'
 
 const services = ref([])
+const servicesVisible = ref(false)
 const siteInfo = ref({ name: 'API Pool', title: 'API Pool 聚合网关', description: '一站式API服务聚合平台。动态接入压缩、转换、识别等多种API，随时增删服务无需重启' })
 
 onMounted(async () => {
   try { const r = await get('/api/gateway'); services.value = r.data.data } catch {}
   try { const r = await get('/api/site-info'); siteInfo.value = r.data.data } catch {}
 })
+
+function onScroll() {
+  servicesVisible.value = window.scrollY > 10
+}
+onMounted(() => { window.addEventListener('scroll', onScroll, { passive: true }) })
+onUnmounted(() => { window.removeEventListener('scroll', onScroll) })
 </script>
 <style scoped>
 .home-page{position:relative;overflow:hidden;min-height:100vh;display:flex;flex-direction:column}
@@ -76,15 +87,23 @@ onMounted(async () => {
   75%{transform:translate(-30px,-10px) scale(1.02)}
 }
 
-.hero{text-align:center;padding:70px 20px 50px;position:relative;z-index:1}
+.hero{text-align:center;padding:0 20px;min-height:65vh;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;z-index:1}
 .hero h1{font-size:2.4rem;font-weight:800;margin-bottom:14px;background:linear-gradient(135deg,#4f46e5,#7c3aed,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero p{color:#64748b;font-size:1.08rem;max-width:560px;margin:0 auto 30px;line-height:1.7}
 .hero-btns{display:flex;gap:12px;justify-content:center}
+.scroll-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;font-size:.78rem;transition:opacity .3s ease;cursor:default}
+.scroll-hint.hide{opacity:0;pointer-events:none}
+.scroll-arrow{width:24px;height:24px;border-right:2px solid #94a3b8;border-bottom:2px solid #94a3b8;transform:rotate(45deg);animation:scrollBounce 1.5s ease-in-out infinite}
+@keyframes scrollBounce{0%,100%{transform:rotate(45deg) translate(0,0)}50%{transform:rotate(45deg) translate(4px,4px)}}
 .container{max-width:1200px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
-.services{padding-bottom:60px}.services h2{text-align:center;margin-bottom:32px;font-size:1.5rem}
+.services{padding-bottom:60px;margin-top:0}.services h2{text-align:center;margin-bottom:32px;font-size:1.5rem;opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.services .service-grid{opacity:0;transform:translateY(40px);transition:opacity .6s ease,transform .6s ease}
+.services.visible h2{opacity:1;transform:translateY(0)}
+.services.visible .service-grid{opacity:1;transform:translateY(0)}
 .service-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
-.scard{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:transform .2s}
-.scard:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.scard{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);opacity:0;transform:translateY(30px);transition:opacity .5s ease,transform .5s ease,box-shadow .2s}
+.services.visible .scard{opacity:1;transform:translateY(0)}
+.scard:hover{transform:translateY(-2px)!important;box-shadow:0 8px 20px rgba(0,0,0,.08)}
 .scat{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:8px;background:#eef2ff;color:#4f46e5;margin-bottom:10px;text-transform:uppercase;font-weight:600}
 .scard h3{margin-bottom:6px;font-size:1.05rem}.scard p{color:#64748b;font-size:.85rem;line-height:1.5;margin-bottom:14px}
 .smeta{display:flex;align-items:center;gap:10px}

@@ -27,13 +27,33 @@
 
     <div class="filter-bar">
       <input v-model="search" class="filter-input" placeholder="搜索工具..." />
-      <select v-model="selectedCategory" class="filter-select">
-        <option value="">全部分类</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-      </select>
+      <el-select v-model="selectedCategory" placeholder="全部分类" clearable style="width:150px">
+        <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+      </el-select>
     </div>
 
-    <div class="tools-grid">
+    <div v-if="loading" class="tools-grid">
+      <div class="tool-card sk-tool" v-for="i in 6" :key="i">
+        <div class="tool-header">
+          <div class="sk-line" style="width:40%;height:16px"></div>
+          <div class="sk-line" style="width:50px;height:18px;border-radius:6px"></div>
+        </div>
+        <div class="tool-desc">
+          <div class="sk-line" style="width:90%;height:12px;margin-bottom:6px"></div>
+          <div class="sk-line" style="width:60%;height:12px"></div>
+        </div>
+        <div class="tool-endpoint">
+          <div class="sk-line" style="width:40px;height:18px;border-radius:4px;flex-shrink:0"></div>
+          <div class="sk-line" style="width:50%;height:14px"></div>
+        </div>
+        <div class="tool-actions" style="display:flex;gap:8px">
+          <div class="sk-line" style="width:70px;height:28px;border-radius:6px"></div>
+          <div class="sk-line" style="width:90px;height:28px;border-radius:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="tools-grid">
       <div class="tool-card" v-for="tool in filteredTools" :key="tool.slug">
         <div class="tool-header">
           <h3>{{ tool.name }}</h3>
@@ -65,6 +85,7 @@ import { useToastStore } from '@/stores/toast'
 
 const toast = useToastStore()
 const tools = ref([])
+const loading = ref(true)
 const search = ref('')
 const selectedCategory = ref('')
 
@@ -93,6 +114,8 @@ onMounted(async () => {
     tools.value = r.data.data
   } catch (e) {
     console.error('Failed to load tools:', e)
+  } finally {
+    loading.value = false
   }
 })
 </script>
@@ -110,7 +133,6 @@ onMounted(async () => {
 .filter-bar{display:flex;gap:12px;margin-bottom:20px}
 .filter-input{flex:1;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:.875rem;outline:none}
 .filter-input:focus{border-color:#4f46e5}
-.filter-select{padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:.875rem;outline:none;background:#fff;min-width:120px}
 .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
 .tool-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;transition:all .2s}
 .tool-card:hover{border-color:#4f46e5;box-shadow:0 4px 20px rgba(79,70,229,.1)}
@@ -136,4 +158,7 @@ onMounted(async () => {
   .info-grid{grid-template-columns:1fr}
   .filter-bar{flex-direction:column}
 }
+.sk-tool{pointer-events:none}
+.sk-line{border-radius:4px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 </style>

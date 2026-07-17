@@ -257,8 +257,9 @@ onMounted(load)
 .sub-expire { color: #64748b; }
 .sub-expire strong { color: #4f46e5; }
 .pay-table-wrap { height: 380px; overflow-y: auto; }
+.pay-table-wrap thead { position: sticky; top: 0; z-index: 1; }
 .pay-table-wrap table { width: 100%; border-collapse: collapse; }
+.pay-table-wrap th { color: #94a3b8; font-weight: 600; background: #fff; }
 .pay-table-wrap th, .pay-table-wrap td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: .82rem; }
-.pay-table-wrap th { color: #94a3b8; font-weight: 600; position: sticky; top: 0; background: #fff; z-index: 1; }
 .pay-pager { padding: 12px 20px; display: flex; justify-content: center; border-top: 1px solid #f1f5f9; }
 </style>
