@@ -1,4 +1,15 @@
-# API Pool Gateway Skills
+# API Pool Gateway Skill
+
+## Skill Info
+
+```yaml
+name: api-pool-gateway
+description: >
+  调用 API Pool Gateway 注册的各种第三方 API 服务。
+  支持文字转语音、文档转换、图片处理等多种工具。
+  使用前需先获取 API Key。
+version: 1.0.0
+```
 
 ## Base URL
 
@@ -6,104 +17,92 @@
 {BASE_URL}
 ```
 
-Default: `http://localhost:8080` — replace with the actual deployed domain.
-
-***
-
-## Overview
-
-This is a skill package for AI agents to interact with the API Pool Gateway. The gateway provides a unified API to call multiple third-party services through a single API Key.
+---
 
 ## Authentication
 
-### API Key
+### 获取 API Key
 
-Calling tools requires an API Key. If you don't have one, **ask the user to provide their API Key**.
+1. 注册账号: `{BASE_URL}/register`
+2. 登录: `{BASE_URL}/login`
+3. 在 `{BASE_URL}/settings` 复制 API Key
 
-Users can obtain an API Key by:
+### 使用 API Key
 
-1. Registering at `{BASE_URL}/register`
-2. Logging in at `{BASE_URL}/login`
-3. Going to `{BASE_URL}/settings` to copy their API Key
-
-### How to Use the API Key
-
-Include it in every request header:
-
+每次请求携带 Header:
 ```
 X-API-Key: <api-key>
 ```
 
-***
+> 默认 Key: `{API_KEY}`
+
+---
 
 ## Tools
 
-### 1. `list_tools` — Get All Available Tools
+### list_tools — 获取工具列表
 
-List all tools/services registered in the gateway. No authentication required.
+列出所有可用服务。无需认证。
 
 ```
 GET {BASE_URL}/api/gateway/tools
 ```
 
-**Response** — a concise list, each item has a `detail_url` for full usage instructions:
-
+**Output:**
 ```json
 {
   "success": true,
   "data": [
     {
-      "name": "Image Compression",
-      "slug": "image-compress",
-      "description": "Compress and resize images",
-      "category": "image",
-      "endpoint": "/api/gateway/image-compress",
+      "name": "Edge TTS",
+      "slug": "edgetts-tts",
+      "description": "文字转语音服务",
+      "category": "ai",
+      "endpoint": "/api/gateway/edgetts-tts",
       "method": "POST",
-      "detail_url": "/api/gateway/tools/image-compress"
+      "detail_url": "/api/gateway/tools/edgetts-tts"
     }
   ]
 }
 ```
 
-***
+---
 
-### 2. `get_tool_info` — Get Detailed Tool Information
+### get_tool_info — 获取工具详情
 
-Get full details for a specific tool (parameters, examples, etc.). No authentication required.
+获取指定工具的完整参数定义和示例。无需认证。
 
 ```
 GET {BASE_URL}/api/gateway/tools/{slug}
 ```
 
-**Response** — complete tool definition:
-
+**Output:**
 ```json
 {
   "success": true,
   "data": {
-    "name": "Image Compression",
-    "slug": "image-compress",
-    "description": "Compress and resize images",
-    "category": "image",
+    "name": "Edge TTS",
+    "slug": "edgetts-tts",
+    "description": "文字转语音",
+    "category": "ai",
     "method": "POST",
-    "endpoint": "/api/gateway/image-compress",
+    "endpoint": "/api/gateway/edgetts-tts",
     "parameters": [
-      { "name": "image_url", "type": "string", "required": true, "description": "URL of the image" },
-      { "name": "quality", "type": "number", "required": false, "description": "Quality (1-100)" }
+      { "name": "text", "type": "string", "required": true, "description": "要转换的文字" }
     ],
-    "input_example": "{\"image_url\": \"https://example.com/img.jpg\", \"quality\": 80}",
-    "output_example": "{\"code\": 0, \"data\": {...}}",
-    "docs": ""
+    "input_example": "{...}",
+    "output_example": "{...}"
   }
 }
 ```
 
-***
+---
 
-### 3. `call_tool` — Execute a Tool
+### call_tool — 调用工具
 
-Call a registered service. **Requires API Key.**
+调用注册的服务。**需认证。**
 
+#### JSON 请求
 ```
 POST {BASE_URL}/api/gateway/{slug}
 Content-Type: application/json
@@ -112,57 +111,73 @@ X-API-Key: <api-key>
 {...params per tool schema...}
 ```
 
-For file uploads, use `multipart/form-data`:
-
+#### 文件上传
 ```
 POST {BASE_URL}/api/gateway/{slug}
 X-API-Key: <api-key>
+Content-Type: multipart/form-data
 
 (form fields + file)
 ```
 
-**Response:**
+#### 返回格式
 
+**文本/JSON 响应:**
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "data": { ... },
+  "data": { ...upstream response... },
   "meta": { "service": "...", "upstreamStatus": 200 }
 }
 ```
 
-***
+**文件响应 (PDF/图片/音频等):**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "type": "file",
+    "url": "/api/downloads/abc-123.mp3",
+    "contentType": "audio/mpeg",
+    "size": 12345
+  },
+  "meta": { "service": "...", "upstreamStatus": 200 }
+}
+```
+> 文件类响应需用 `GET {BASE_URL}{data.url}` 下载。
+
+---
 
 ## Workflow
 
 ```
-1. list_tools         →  Discover what's available
-2. get_tool_info      →  Get a specific tool's full schema (parameters, examples)
-3. call_tool          →  Execute with API Key + parameters
+1. list_tools      → 发现有啥工具
+2. get_tool_info   → 获取工具参数和示例
+3. call_tool       → 用 API Key + 参数调用
 ```
 
-***
+---
 
 ## Error Codes
 
-| Code | Meaning                    |
-| ---- | -------------------------- |
-| 401  | Missing or invalid API Key |
-| 404  | Tool not found or disabled |
-| 400  | Invalid parameters         |
-| 429  | Rate limit exceeded        |
-| 502  | Upstream service error     |
-| 504  | Upstream service timeout   |
+| Code | Meaning |
+|------|---------|
+| 401  | 缺少或无效 API Key |
+| 404  | 工具不存在或已禁用 |
+| 400  | 参数无效 |
+| 429  | 触发速率限制 |
+| 502  | 上游服务错误 |
+| 504  | 上游服务超时 |
 
-***
+---
 
 ## Rate Limits
 
-| Tier       | Requests/sec | Requests/day |
-| ---------- | ------------ | ------------ |
-| Free       | 5            | 100          |
-| Basic      | 20           | 5,000        |
-| Pro        | 50           | 20,000       |
-| Enterprise | 100          | Unlimited    |
-
+| Tier       | 请求/秒 | 请求/天  |
+|------------|---------|----------|
+| Free       | 5       | 100      |
+| Basic      | 20      | 5,000    |
+| Pro        | 50      | 20,000   |
+| Enterprise | 100     | 不限     |

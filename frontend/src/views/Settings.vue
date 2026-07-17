@@ -87,11 +87,8 @@ async function exportSkill(key) {
   try {
     const r = await get('/api/skills/template')
     let content = r.data.data
-    content = content.replace(/Default: `[^`]+`/, `Default: \`${window.location.origin}/\``)
-    content = content.replace(
-      "Calling tools requires an API Key. If you don't have one, **ask the user to provide their API Key**.",
-      `Calling tools requires an API Key.\n\n> **Default Key:** \`${key}\``
-    )
+    content = content.replace(/{BASE_URL}/g, window.location.origin + '/')
+    content = content.replace('{API_KEY}', key)
     const blob = new Blob([content], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
