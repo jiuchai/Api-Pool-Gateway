@@ -75,7 +75,7 @@ function toggleSvc(slug) {
 }
 
 async function load() { try { const r = await get('/api/keys'); keys.value = r.data.data } catch(e) { toast.error(e.message) } }
-async function loadServices() { try { const r = await get('/api/admin/services'); allServices.value = r.data.data } catch {} }
+async function loadServices() { try { const r = await get('/api/services'); allServices.value = r.data.data } catch {} }
 async function create() { try { const r = await post('/api/keys',{name:newName.value}); newKey.value = r.data.data; load(); toast.success('已创建') } catch(e) { toast.error(e.message) } }
 async function disable(id) { try { await put(`/api/keys/${id}/disable`); toast.success('已禁用'); load() } catch(e) { toast.error(e.message) } }
 async function enable(id) { try { await put(`/api/keys/${id}/enable`); toast.success('已启用'); load() } catch(e) { toast.error(e.message) } }
