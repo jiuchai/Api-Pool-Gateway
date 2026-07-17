@@ -97,8 +97,8 @@ onUnmounted(() => { window.removeEventListener('scroll', onScroll) })
 }
 
 .hero{text-align:center;padding:0 20px;min-height:65vh;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;z-index:1}
-.hero h1{font-size:2.4rem;font-weight:800;margin-bottom:14px;background:linear-gradient(135deg,#4f46e5,#7c3aed,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero p{color:#64748b;font-size:1.08rem;max-width:560px;margin:0 auto 30px;line-height:1.7}
+.hero h1{font-size:3.8rem;font-weight:800;margin-bottom:14px;background:linear-gradient(135deg,#4f46e5,#7c3aed,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:#64748b;font-size:1.2rem;max-width:760px;margin:0 auto 30px;line-height:1.7}
 .hero-btns{display:flex;gap:12px;justify-content:center}
 .sk-title{width:320px;height:36px;border-radius:6px;margin:0 auto 14px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
 .sk-desc{width:460px;height:60px;border-radius:6px;margin:0 auto 30px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
