@@ -595,6 +595,9 @@ router.get('/check-update', async (req, res) => {
 router.post('/update', async (req, res) => {
   try {
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot, encoding: 'utf8' }).trim();
+    // 清理 public/ 中的构建产物，避免 pull 冲突
+    try { execSync('git checkout -- public/', { cwd: projectRoot, encoding: 'utf8', stdio: 'pipe' }); } catch {}
+    try { execSync('git clean -fd public/', { cwd: projectRoot, encoding: 'utf8', stdio: 'pipe' }); } catch {}
     const result = execSync(`git pull origin ${branch}`, { cwd: projectRoot, encoding: 'utf8', timeout: 30000 });
     // 安装后端新依赖
     let npmOut = '';
