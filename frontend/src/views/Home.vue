@@ -9,12 +9,19 @@
     </div>
     <div class="home-main">
     <section class="hero container">
-      <h1 v-if="siteInfo.title">{{ siteInfo.title }}</h1>
-      <p>{{ siteInfo.description }}</p>
-      <div class="hero-btns">
-        <router-link to="/register" class="btn btn-primary btn-lg">免费注册</router-link>
-        <router-link to="/docs" class="btn btn-outline btn-lg">查看服务</router-link>
-      </div>
+      <template v-if="siteLoaded">
+        <h1 v-if="siteInfo.title">{{ siteInfo.title }}</h1>
+        <p>{{ siteInfo.description }}</p>
+        <div class="hero-btns">
+          <router-link to="/register" class="btn btn-primary btn-lg">免费注册</router-link>
+          <router-link to="/docs" class="btn btn-outline btn-lg">查看服务</router-link>
+        </div>
+      </template>
+      <template v-else>
+        <div class="sk-title"></div>
+        <div class="sk-desc"></div>
+        <div class="sk-btn"></div>
+      </template>
       <div class="scroll-hint" :class="{ hide: servicesVisible }">
         <span>向下滚动</span>
         <div class="scroll-arrow"></div>
@@ -57,11 +64,13 @@ import { ref, onMounted, onUnmounted } from 'vue'; import { get } from '@/api/cl
 
 const services = ref([])
 const servicesVisible = ref(false)
+const siteLoaded = ref(false)
 const siteInfo = ref({ name: 'API Pool', title: 'API Pool 聚合网关', description: '一站式API服务聚合平台。动态接入压缩、转换、识别等多种API，随时增删服务无需重启' })
 
 onMounted(async () => {
   try { const r = await get('/api/gateway'); services.value = r.data.data } catch {}
   try { const r = await get('/api/site-info'); siteInfo.value = r.data.data } catch {}
+  siteLoaded.value = true
 })
 
 function onScroll() {
@@ -91,6 +100,10 @@ onUnmounted(() => { window.removeEventListener('scroll', onScroll) })
 .hero h1{font-size:2.4rem;font-weight:800;margin-bottom:14px;background:linear-gradient(135deg,#4f46e5,#7c3aed,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero p{color:#64748b;font-size:1.08rem;max-width:560px;margin:0 auto 30px;line-height:1.7}
 .hero-btns{display:flex;gap:12px;justify-content:center}
+.sk-title{width:320px;height:36px;border-radius:6px;margin:0 auto 14px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.sk-desc{width:460px;height:60px;border-radius:6px;margin:0 auto 30px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.sk-btn{width:200px;height:44px;border-radius:8px;margin:0 auto;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .scroll-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;font-size:.78rem;transition:opacity .3s ease;cursor:default}
 .scroll-hint.hide{opacity:0;pointer-events:none}
 .scroll-arrow{width:24px;height:24px;border-right:2px solid #94a3b8;border-bottom:2px solid #94a3b8;transform:rotate(45deg);animation:scrollBounce 1.5s ease-in-out infinite}
