@@ -80,8 +80,11 @@ function createRateLimiter(windowMs = 60000) {
         }
       }
 
-      await db.rateLimit.insert({ userId, tierIndex, windowMs: limitWindowMs, timestamp: now });
-      await db.rateLimit.insert({ userId, tierIndex, windowMs: 86400000, timestamp: now });
+      const rec1 = await db.rateLimit.insert({ userId, tierIndex, windowMs: limitWindowMs, timestamp: now });
+      const rec2 = await db.rateLimit.insert({ userId, tierIndex, windowMs: 86400000, timestamp: now });
+
+      // 记录本次插入的 ID，用于请求失败时回滚
+      req._rateLimitIds = [rec1._id, rec2._id];
 
       // 清理旧数据
       await db.rateLimit.remove({ timestamp: { $lt: now - 86400000 } }, { multi: true });
@@ -98,4 +101,13 @@ async function createDailyLimiter() {
   };
 }
 
-module.exports = { createRateLimiter, createDailyLimiter };
+/** 回滚本次请求的限流计数（上游请求失败时调用） */
+async function rollbackRateLimit(req) {
+  try {
+    if (req._rateLimitIds && req._rateLimitIds.length) {
+      await db.rateLimit.remove({ _id: { $in: req._rateLimitIds } }, { multi: true });
+    }
+  } catch { /* 回滚失败不影响主流程 */ }
+}
+
+module.exports = { createRateLimiter, createDailyLimiter, rollbackRateLimit };

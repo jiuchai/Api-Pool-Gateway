@@ -7,7 +7,7 @@ const router = express.Router();
 const multer = require('multer');
 const gatewayService = require('../services/gatewayService');
 const { apiKeyAuth } = require('../middleware/auth');
-const { createRateLimiter } = require('../middleware/rateLimiter');
+const { createRateLimiter, rollbackRateLimit } = require('../middleware/rateLimiter');
 const { callLogger } = require('../middleware/logger');
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
@@ -48,8 +48,14 @@ router.post('/:slug', apiKeyAuth, createRateLimiter(), upload.any(), callLogger,
     }
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const result = await gatewayService.executeService(req.params.slug, params, null, baseUrl);
+    // 上游请求失败时不计数
+    if (!result.success) {
+      await rollbackRateLimit(req);
+    }
     res.status(result.statusCode || 200).json(result);
   } catch (e) {
+    // 网络错误/超时等也不计数
+    await rollbackRateLimit(req);
     res.status(e.status || 500).json({ success: false, error: e.message, details: e.details || null });
   }
 });

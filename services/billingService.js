@@ -177,14 +177,37 @@ const billingService = {
     return bills;
   },
 
-  async changeUserTier(userId, tierIndex) {
+  async changeUserTier(userId, tierIndex, durationDays = 30) {
     const tiers = await tierService._getRawTiers();
     if (tierIndex < 0 || tierIndex >= tiers.length) throw { status: 400, message: '无效的计费档次' };
     const user = await db.users.findOne({ _id: userId });
     if (!user) throw { status: 404, message: '用户不存在' };
-    await db.users.update({ _id: userId }, { $set: { tierIndex, updatedAt: Date.now() } });
+
+    const tier = tiers[tierIndex];
+    const now = new Date();
+
+    // 如果同一套餐已有有效订阅，则续期；否则新建
+    const existing = await db.userSubscriptions.findOne({ userId, tierIndex, expiresAt: { $gte: now.getTime() } });
+    const baseTime = existing ? new Date(existing.expiresAt) : now;
+    const expiresAt = addDays(baseTime, durationDays);
+
+    if (existing) {
+      await db.userSubscriptions.update({ _id: existing._id }, { $set: { expiresAt: expiresAt.getTime(), durationDays: existing.durationDays + durationDays, updatedAt: now.getTime() } });
+    } else {
+      await db.userSubscriptions.insert({
+        userId, tierIndex,
+        startedAt: now.getTime(),
+        expiresAt: expiresAt.getTime(),
+        durationDays,
+        createdAt: now.getTime(),
+      });
+    }
+
+    // 更新用户当前套餐及速率限制
+    await db.users.update({ _id: userId }, { $set: { tierIndex, 'rateLimit.perSecond': tier.ratePerSecond, updatedAt: Date.now() } });
     await db.billingRecords.update({ userId, month: getCurrentMonth() }, { $set: { tierIndex } }, { upsert: true });
-    return { message: '套餐已更新', tierIndex };
+
+    return { message: '套餐已更新', tierIndex, tierName: tier.name, expiresAt: formatDateTime(expiresAt) };
   },
 
   /** 管理员主动为用户配置任意套餐及到期时间 */
