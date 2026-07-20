@@ -91,6 +91,10 @@ const callLogSchema = new mongoose.Schema({
   ip:             { type: String },
   requestBody:    { type: String },
   responseBody:   { type: String },
+  userRequest:    { type: mongoose.Schema.Types.Mixed },
+  userResponse:   { type: String },
+  upstreamRequest:  { type: mongoose.Schema.Types.Mixed },
+  upstreamResponse: { type: mongoose.Schema.Types.Mixed },
   timestamp:      { type: Number, default: Date.now },
 });
 
