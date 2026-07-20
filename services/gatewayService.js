@@ -42,7 +42,26 @@ const gatewayService = {
   /**
    * 根据slug查找并执行转发
    */
-  async executeService(slug, params, reqHeaders, baseUrl) {
+  /**
+   * 构建上游请求摘要（文件内容显示为 [文件: 文件名]）
+   */
+  _buildUpstreamSummary(params, headers, method, url) {
+    const body = {};
+    if (params) {
+      for (const [key, val] of Object.entries(params)) {
+        if (val && typeof val === 'object' && val.originalname) {
+          body[key] = `[文件: ${val.originalname}]`;
+        } else if (Array.isArray(val)) {
+          body[key] = val.map(v => v && v.originalname ? `[文件: ${v.originalname}]` : String(v));
+        } else {
+          body[key] = String(val);
+        }
+      }
+    }
+    return { method, url, headers: { ...headers }, body };
+  },
+
+  async executeService(slug, params, reqHeaders, baseUrl, req) {
     const service = await require('../database').db.services.findOne({ slug, enabled: true });
     if (!service) throw { status: 404, message: `服务 "${slug}" 不存在或已禁用` };
 
@@ -87,6 +106,32 @@ const gatewayService = {
     if (hasFiles || forceFormData) {
       useFormData = true;
       const form = new FormData();
+
+      // 解析 bodyTemplate 中的默认参数（支持模板变量替换）
+      let templateParams = {};
+      if (service.bodyTemplate && typeof service.bodyTemplate === 'string') {
+        let bodyStr = service.bodyTemplate;
+        if (params) {
+          for (const [key, val] of Object.entries(params)) {
+            if (val && typeof val === 'object' && (val.path || val.filename || val.buffer) && val.originalname) continue;
+            const escaped = String(val).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            bodyStr = bodyStr.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), escaped);
+          }
+        }
+        try {
+          templateParams = JSON.parse(bodyStr);
+        } catch {
+          templateParams = {};
+        }
+      }
+
+      // 先追加 bodyTemplate 中的默认参数（用户未显式提供时）
+      for (const [key, val] of Object.entries(templateParams)) {
+        if (!(params && key in params)) {
+          form.append(key, String(val));
+        }
+      }
+
       for (const [key, val] of Object.entries(params)) {
         if (Array.isArray(val)) {
           val.forEach(item => {
@@ -100,13 +145,6 @@ const gatewayService = {
         } else if (val && typeof val === 'object' && (val.path || val.filename || val.buffer) && val.originalname) {
           const src = val.path ? require('fs').createReadStream(val.path) : Buffer.from(val.buffer);
           form.append(key, src, { filename: val.originalname });
-        } else if (service.bodyTemplate && !forceFormData) {
-          let valStr = String(val);
-          if (service.bodyTemplate.includes(`{{${key}}}`)) {
-            const escaped = valStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            valStr = escaped;
-          }
-          form.append(key, valStr);
         } else {
           form.append(key, String(val));
         }
@@ -180,9 +218,14 @@ const gatewayService = {
     delete headers['x-api-key'];
     delete headers['host'];
 
+    // 构建上游请求摘要（用于日志）
+    const upstreamMethod = (service.method || 'POST').toLowerCase();
+    const upstreamReqSummary = this._buildUpstreamSummary(params, headers, upstreamMethod, targetUrl);
+    if (req) req._upstreamReq = upstreamReqSummary;
+
     try {
       const response = await axios({
-        method: (service.method || 'POST').toLowerCase(),
+        method: upstreamMethod,
         url: targetUrl,
         headers,
         data: (service.method === 'GET' || service.method === 'DELETE') ? undefined : requestBody,
@@ -192,6 +235,35 @@ const gatewayService = {
         responseType: 'arraybuffer',
         maxRedirects: 5,
       });
+
+      // 构建上游响应摘要（用于日志）
+      if (req) {
+        const upstreamRespHeaders = { ...response.headers };
+        delete upstreamRespHeaders['set-cookie'];
+        let upstreamBody;
+        if (response.data && Buffer.isBuffer(response.data)) {
+          const ct = (response.headers['content-type'] || '').toLowerCase();
+          if (ct.includes('application/json') || ct.includes('text/')) {
+            const str = response.data.toString('utf-8');
+            try { upstreamBody = JSON.parse(str); } catch { upstreamBody = str; }
+          } else {
+            upstreamBody = `[二进制: ${response.data.length} bytes, ${ct || 'unknown'}]`;
+          }
+        } else {
+          upstreamBody = response.data;
+        }
+        // 截断过长内容
+        let bodyStr = upstreamBody;
+        if (typeof bodyStr === 'object') {
+          try { bodyStr = JSON.stringify(bodyStr); } catch { bodyStr = '[不可序列化]'; }
+        }
+        if (typeof bodyStr === 'string' && bodyStr.length > 3000) bodyStr = bodyStr.slice(0, 3000) + '...[截断]';
+        req._upstreamResp = {
+          status: response.status,
+          headers: upstreamRespHeaders,
+          body: bodyStr,
+        };
+      }
 
       const contentType = (response.headers['content-type'] || '').toLowerCase();
       const isJson = contentType.includes('application/json') || contentType.includes('text/');
@@ -266,6 +338,7 @@ const gatewayService = {
         },
       };
     } catch (err) {
+      if (req) req._upstreamResp = { status: 0, error: err.code || err.message };
       if (err.code === 'ECONNABORTED') throw { status: 504, message: '上游服务超时' };
       if (err.code === 'ECONNREFUSED') throw { status: 502, message: '上游服务拒绝连接' };
       if (err.code === 'ENOTFOUND') throw { status: 502, message: '上游服务域名解析失败' };

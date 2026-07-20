@@ -1,5 +1,30 @@
 const { db } = require('../database');
 
+/**
+ * 将 body 对象转为可存储的字符串，文件字段显示为 [文件: 文件名]
+ */
+function serializeBody(body, maxLen = 5000) {
+  if (!body || (typeof body === 'object' && Object.keys(body).length === 0)) return null;
+  try {
+    const safe = {};
+    for (const [key, val] of Object.entries(body)) {
+      if (val && typeof val === 'object' && val.originalname) {
+        safe[key] = `[文件: ${val.originalname}]`;
+      } else if (Array.isArray(val)) {
+        safe[key] = val.map(v =>
+          v && typeof v === 'object' && v.originalname ? `[文件: ${v.originalname}]` : v
+        );
+      } else {
+        safe[key] = val;
+      }
+    }
+    const str = JSON.stringify(safe);
+    return str.length > maxLen ? str.slice(0, maxLen) + '...[截断]' : str;
+  } catch {
+    return '[不可序列化]';
+  }
+}
+
 async function callLogger(req, res, next) {
   const start = Date.now();
   let respBody = null;
@@ -22,18 +47,38 @@ async function callLogger(req, res, next) {
 
 async function logCall(req, res, responseBody, responseTime) {
   try {
-    let reqStr = null, respStr = null;
-    if (req.body && Object.keys(req.body).length) {
-      try { const r = JSON.stringify(req.body); reqStr = r.length > 5000 ? r.slice(0, 5000) + '...[截断]' : r; } catch { reqStr = '[不可序列化]'; }
-    }
+    // 用户请求体（文件 → [文件: 文件名]）
+    const userReq = {
+      method: req.method,
+      path: req.originalUrl,
+      query: req.query && Object.keys(req.query).length ? req.query : undefined,
+      body: serializeBody(req.body),
+    };
+
+    // 用户响应体
+    let respStr = null;
     if (responseBody) {
-      try { const r = typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody); respStr = r.length > 5000 ? r.slice(0, 5000) + '...[截断]' : r; } catch { respStr = '[不可序列化]'; }
+      try {
+        const r = typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody);
+        respStr = r.length > 5000 ? r.slice(0, 5000) + '...[截断]' : r;
+      } catch { respStr = '[不可序列化]'; }
     }
+
+    // 上游请求
+    const upstreamReq = req._upstreamReq || null;
+    if (upstreamReq && upstreamReq.body) {
+      upstreamReq.body = serializeBody(upstreamReq.body, 3000);
+    }
+
+    // 上游响应
+    const upstreamResp = req._upstreamResp || null;
+
     // 获取服务名称
     let serviceName = null;
     if (req.params?.slug) {
       try { const svc = await db.services.findOne({ slug: req.params.slug }); if (svc) serviceName = svc.name; } catch {}
     }
+
     await db.callLogs.insert({
       userId: req.user?._id || null,
       username: req.user?.username || 'anonymous',
@@ -47,8 +92,10 @@ async function logCall(req, res, responseBody, responseTime) {
       statusCode: res.statusCode,
       responseTime,
       ip: (req.headers['x-forwarded-for'] || req.ip || '').replace(/^::1$/, '127.0.0.1'),
-      requestBody: reqStr,
-      responseBody: respStr,
+      userRequest: userReq,
+      userResponse: respStr,
+      upstreamRequest: upstreamReq,
+      upstreamResponse: upstreamResp,
       timestamp: Date.now(),
     });
   } catch { /* silent */ }
