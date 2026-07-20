@@ -43,22 +43,35 @@ const gatewayService = {
    * 根据slug查找并执行转发
    */
   /**
-   * 构建上游请求摘要（文件内容显示为 [文件: 文件名]）
+   * 从实际 requestBody 构建上游请求摘要（form-data 则遍历字段，JSON 则直接用）
    */
-  _buildUpstreamSummary(params, headers, method, url) {
-    const body = {};
-    if (params) {
-      for (const [key, val] of Object.entries(params)) {
-        if (val && typeof val === 'object' && val.originalname) {
-          body[key] = `[文件: ${val.originalname}]`;
-        } else if (Array.isArray(val)) {
-          body[key] = val.map(v => v && v.originalname ? `[文件: ${v.originalname}]` : String(v));
-        } else {
-          body[key] = String(val);
+  _buildUpstreamBody(requestBody, useFormData) {
+    if (!useFormData) {
+      return requestBody;
+    }
+    // FormData: 遍历所有字段，文件只记文件名
+    const fields = {};
+    try {
+      // form-data 包内部使用 _streams 存储字段
+      const entries = requestBody.getBuffer ? [] : null;
+      // 通过 _streams 直接访问
+      if (requestBody._streams) {
+        for (let i = 0; i < requestBody._streams.length; i += 2) {
+          const key = requestBody._streams[i];
+          const val = requestBody._streams[i + 1];
+          if (val && typeof val === 'string') {
+            fields[key] = val;
+          } else if (val && val.path) {
+            fields[key] = `[文件: ${val.filename || val.path}]`;
+          } else if (val && val._readableState) {
+            fields[key] = '[文件流]';
+          } else {
+            fields[key] = typeof val === 'string' ? val : String(val);
+          }
         }
       }
-    }
-    return { method, url, headers: { ...headers }, body };
+    } catch {}
+    return fields;
   },
 
   async executeService(slug, params, reqHeaders, baseUrl, req) {
@@ -102,13 +115,13 @@ const gatewayService = {
 
     let requestBody = params || {};
     let useFormData = false;
+    let templateParams = {};
 
     if (hasFiles || forceFormData) {
       useFormData = true;
       const form = new FormData();
 
-      // 解析 bodyTemplate 中的默认参数（支持模板变量替换）
-      let templateParams = {};
+      // 解析 bodyTemplate 中的默认参数
       if (service.bodyTemplate && typeof service.bodyTemplate === 'string') {
         let bodyStr = service.bodyTemplate;
         if (params) {
@@ -218,10 +231,17 @@ const gatewayService = {
     delete headers['x-api-key'];
     delete headers['host'];
 
-    // 构建上游请求摘要（用于日志）
+    // 构建上游请求摘要（从实际发送的 requestBody 读取，而非拼凑）
     const upstreamMethod = (service.method || 'POST').toLowerCase();
-    const upstreamReqSummary = this._buildUpstreamSummary(params, headers, upstreamMethod, targetUrl);
-    if (req) req._upstreamReq = upstreamReqSummary;
+    if (req) {
+      const actualBody = this._buildUpstreamBody(requestBody, useFormData);
+      req._upstreamReq = {
+        method: upstreamMethod,
+        url: targetUrl,
+        headers: { ...headers },
+        body: actualBody,
+      };
+    }
 
     try {
       const response = await axios({

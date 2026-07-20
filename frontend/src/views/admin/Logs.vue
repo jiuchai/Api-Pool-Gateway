@@ -22,8 +22,10 @@
           <tr class="lr" :class="{ex:l._e}" @click="l._e=!l._e"><td class="time">{{ l.timestamp }}</td><td>{{ l.username }}</td><td class="email-cell">{{ l.email || '-' }}</td><td><span class="mt">{{ l.method }}</span></td><td class="path">{{ l.path }}</td><td>{{ l.serviceName || l.serviceSlug || '-' }}</td><td class="key-cell">{{ l.apiKeyName || '-' }}</td><td><span :class="sc(l.statusCode)">{{ l.statusCode }}</span></td><td>{{ l.responseTime }}ms</td><td><span class="ei">{{ l._e?'▲':'▼' }}</span></td></tr>
           <tr v-if="l._e" class="ldr"><td colspan="10"><div class="ld">
             <div class="ds"><h4>基本信息</h4><div class="info-grid"><div><span class="il">方法:</span>{{ l.method }}</div><div><span class="il">路径:</span><code>{{ l.path }}</code></div><div><span class="il">状态码:</span>{{ l.statusCode }}</div><div><span class="il">响应时间:</span>{{ l.responseTime }}ms</div><div><span class="il">Key名称:</span>{{ l.apiKeyName || '-' }}</div><div><span class="il">IP:</span>{{ l.ip||'-' }}</div></div></div>
-            <div class="ds"><h4>请求体</h4><pre v-if="l.requestBody"><code>{{ fb(l.requestBody) }}</code></pre><div v-else style="color:#94a3b8">无</div></div>
-            <div class="ds"><h4>响应体</h4><pre v-if="l.responseBody"><code>{{ fb(l.responseBody) }}</code></pre><div v-else style="color:#94a3b8">无</div></div>
+            <div class="ds"><h4>用户请求</h4><pre v-if="l.userRequest"><code>{{ fj(l.userRequest) }}</code></pre><pre v-else-if="l.requestBody"><code>{{ fb(l.requestBody) }}</code></pre><div v-else style="color:#94a3b8">无</div></div>
+            <div class="ds"><h4>用户响应</h4><pre v-if="l.userResponse"><code>{{ fb(l.userResponse) }}</code></pre><pre v-else-if="l.responseBody"><code>{{ fb(l.responseBody) }}</code></pre><div v-else style="color:#94a3b8">无</div></div>
+            <div v-if="l.upstreamRequest" class="ds"><h4>上游请求</h4><pre><code>{{ fj(l.upstreamRequest) }}</code></pre></div>
+            <div v-if="l.upstreamResponse" class="ds"><h4>上游响应</h4><pre><code>{{ fj(l.upstreamResponse) }}</code></pre></div>
           </div></td></tr>
         </template>
       </tbody></table>
@@ -50,6 +52,7 @@ watch(dateRange, (val) => {
 
 function sc(c) { if (c>=200&&c<300) return 's2'; if (c>=400&&c<500) return 's4'; if (c>=500) return 's5'; return '' }
 function fb(s) { if (!s) return ''; try { return JSON.stringify(JSON.parse(s), null, 2) } catch { return s } }
+function fj(obj) { if (!obj) return ''; try { return JSON.stringify(obj, null, 2) } catch { return String(obj) } }
 async function load(p = 1) {
   page.value = p
   const params = { page: p, pageSize: ps }
