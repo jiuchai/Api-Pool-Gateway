@@ -45,7 +45,10 @@ router.get('/', async (req, res) => {
     const logs = await db.callLogs.find(query).sort({ timestamp: -1 }).skip((p - 1) * ps).limit(ps);
     res.json({
       success: true, data: {
-        logs: logs.map(l => ({ ...l, id: l._id, timestamp: formatDateTime(l.timestamp) })),
+        logs: logs.map(l => {
+          const { upstreamRequest, upstreamResponse, ...rest } = l;
+          return { ...rest, id: l._id, timestamp: formatDateTime(l.timestamp) };
+        }),
         pagination: { total, page: p, pageSize: ps, totalPages: Math.ceil(total / ps) },
       }
     });
