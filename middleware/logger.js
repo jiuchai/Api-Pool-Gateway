@@ -47,12 +47,26 @@ async function callLogger(req, res, next) {
 
 async function logCall(req, res, responseBody, responseTime) {
   try {
+    // 合并 req.body 和 req.files，让日志能显示文件信息
+    const bodyForLog = { ...(req.body && typeof req.body === 'object' ? req.body : {}) };
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        if (bodyForLog[file.fieldname]) {
+          if (!Array.isArray(bodyForLog[file.fieldname])) {
+            bodyForLog[file.fieldname] = [bodyForLog[file.fieldname]];
+          }
+          bodyForLog[file.fieldname].push(file);
+        } else {
+          bodyForLog[file.fieldname] = file;
+        }
+      });
+    }
     // 用户请求体（文件 → [文件: 文件名]）
     const userReq = {
       method: req.method,
       path: req.originalUrl,
       query: req.query && Object.keys(req.query).length ? req.query : undefined,
-      body: serializeBody(req.body),
+      body: serializeBody(bodyForLog),
     };
 
     // 用户响应体

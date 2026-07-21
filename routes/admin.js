@@ -266,6 +266,28 @@ router.get('/audit', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===== 下载文件统计 =====
+router.get('/downloads-stats', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const DOWNLOADS_DIR = path.join(__dirname, '..', 'downloads');
+    let count = 0;
+    let totalSize = 0;
+    if (fs.existsSync(DOWNLOADS_DIR)) {
+      const files = fs.readdirSync(DOWNLOADS_DIR);
+      count = files.length;
+      files.forEach(file => {
+        try {
+          const stat = fs.statSync(path.join(DOWNLOADS_DIR, file));
+          totalSize += stat.size;
+        } catch {}
+      });
+    }
+    res.json({ success: true, data: { count, totalSize } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== 计费管理 =====
 const billingService = require('../services/billingService');
 const redeemService = require('../services/redeemService');

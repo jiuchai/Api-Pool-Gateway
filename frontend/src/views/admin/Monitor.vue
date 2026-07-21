@@ -76,6 +76,11 @@
         <div class="ir"><span>堆内存</span><strong>{{ data.system.memory.heapUsed }}</strong></div>
         <div class="ir"><span>Node版本</span><strong>{{ data.system.nodeVersion }}</strong></div>
       </div></div>
+
+      <div class="card" style="margin-top:20px"><div class="ch"><h3>临时下载文件</h3></div><div class="cb sys-info">
+        <div class="ir"><span>文件数量</span><strong>{{ downloadsStats.count }} 个</strong></div>
+        <div class="ir"><span>总大小</span><strong>{{ formatBytes(downloadsStats.totalSize) }}</strong></div>
+      </div></div>
     </template>
   </div>
 </template>
@@ -88,13 +93,22 @@ import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, ArcElement, BarElement, Tooltip, Legend, Filler)
 
 const loading = ref(true); const data = ref(null); const services = ref([]); const trendService = ref('')
+const downloadsStats = ref({ count: 0, totalSize: 0 })
 function fmt(s) { const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60); return `${d}天${h}时${m}分` }
+function formatBytes(b) { if (!b) return '0 B'; const u = ['B','KB','MB','GB']; let i = 0; while (b >= 1024 && i < u.length - 1) { b /= 1024; i++ } return b.toFixed(1) + ' ' + u[i] }
 
 async function loadMonitor() {
   try {
     const params = trendService.value ? `?serviceSlug=${encodeURIComponent(trendService.value)}` : ''
     const r = await get('/api/admin/monitor' + params)
     data.value = r.data.data
+  } catch {}
+}
+
+async function loadDownloadsStats() {
+  try {
+    const r = await get('/api/admin/downloads-stats')
+    downloadsStats.value = r.data.data
   } catch {}
 }
 
@@ -125,6 +139,7 @@ onMounted(async () => {
   loading.value = true
   try {
     await loadMonitor()
+    loadDownloadsStats()
     const sr = await get('/api/services')
     services.value = sr.data.data || []
   } catch {} finally { loading.value = false }
