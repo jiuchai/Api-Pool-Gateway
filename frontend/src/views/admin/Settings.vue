@@ -101,7 +101,7 @@ async function checkUpdate() {
   try {
     const r = await get('/api/admin/check-update')
     updateInfo.value = r.data.data
-    if (updateInfo.value.hasUpdate) toast.info('发现新版本！')
+    if (updateInfo.value.hasUpdate) toast.success('发现新版本！')
     else toast.success('已是最新版本')
   } catch (e) {
     updateError.value = e.message || '检测失败'
