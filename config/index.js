@@ -13,7 +13,7 @@ module.exports = {
     password: process.env.MASTER_PASSWORD || '',
   },
   rateLimit: { defaultPerMinute: 60, defaultPerHour: 1000, defaultPerDay: 10000 },
-  proxy: { timeout: 30000 },
+  proxy: { timeout: 300000 },
   logRetentionDays: 90,
   dbPath: './data',
   serviceStoreUrl: 'https://raw.githubusercontent.com/jiuchai/Api-Pool-Gateway/main/config/default-services.json',

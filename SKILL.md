@@ -42,11 +42,20 @@ X-API-Key: <api-key>
 
 ### list_tools — 获取工具列表
 
-列出所有可用服务。无需认证。
+列出可用服务。
 
+#### 无认证 — 获取全部工具
 ```
 GET {BASE_URL}/api/gateway/tools
 ```
+
+#### 携带 API Key — 仅列出该 Key 可调用的工具
+```
+GET {BASE_URL}/api/gateway/tools
+X-API-Key: <api-key>
+```
+
+> 如果 API Key 未限定服务范围，则返回全部工具；若已限定，则只返回被授权的工具。
 
 **Output:**
 ```json
