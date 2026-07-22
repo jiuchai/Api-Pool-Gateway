@@ -59,7 +59,7 @@
           <div v-if="err" class="alert alert-error">{{ err }}</div>
           <div v-if="resp">
             <div v-if="resp.data && resp.data.type === 'file'" style="text-align:center;padding:0 0 16px">
-              <a :href="resp.data.url" target="_blank" class="btn-dl">下载文件 ({{ formatSize(resp.data.size) }})</a>
+              <a :href="resp.data.url" download class="btn-dl">下载文件 ({{ formatSize(resp.data.size) }})</a>
             </div>
             <pre><code>{{ JSON.stringify(resp,null,2) }}</code></pre>
           </div>
