@@ -1,15 +1,13 @@
-# API Pool Gateway Skill
-
-## Skill Info
-
-```yaml
+---
 name: api-pool-gateway
-description: >
-  调用 API Pool Gateway 注册的各种第三方 API 服务。
-  支持文字转语音、文档转换、图片处理等多种工具。
-  使用前需先获取 API Key。
+description: 调用 API Pool Gateway 注册的各种第三方 API 服务。支持文字转语音、文档转换、图片处理等多种工具。使用前需先获取 API Key。
 version: 1.0.0
-```
+license: External
+allowed-tools:
+disable: false
+---
+
+# API Pool Gateway Skill
 
 ## Base URL
 
@@ -136,7 +134,7 @@ Content-Type: multipart/form-data
 {
   "success": true,
   "statusCode": 200,
-  "data": { ...upstream response... },
+  "data": { "...upstream response..." },
   "meta": { "service": "...", "upstreamStatus": 200 }
 }
 ```
@@ -148,7 +146,7 @@ Content-Type: multipart/form-data
   "statusCode": 200,
   "data": {
     "type": "file",
-    "url": "{BASE_URL}api/downloads/abc-123.mp3",
+    "url": "{BASE_URL}/api/downloads/abc-123.mp3",
     "contentType": "audio/mpeg",
     "size": 12345
   },
