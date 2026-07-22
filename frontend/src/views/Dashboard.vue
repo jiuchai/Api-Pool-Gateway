@@ -274,8 +274,8 @@ onMounted(load)
 .card-header h3 { font-size: 1rem; }
 .card-body { padding: 20px; }
 .card-body table { width: 100%; border-collapse: collapse; }
-.card-body th, .card-body td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: .82rem; }
-.card-body th { color: #94a3b8; font-weight: 600; }
+.card-body th, .card-body td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: .85rem; }
+.card-body th { color: #94a3b8; font-weight: 600; font-size: .75rem; }
 .time { white-space: nowrap; color: #64748b; font-size: .8rem; }
 .method-tag { font-weight: 600; color: #4f46e5; }
 .s2 { color: #10b981; font-weight: 600; }

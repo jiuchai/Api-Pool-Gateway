@@ -140,7 +140,7 @@ onMounted(() => { load(); loadServices() })
 <style scoped>
 .container{max-width:1200px;margin:0 auto;padding:24px;height:calc(100vh - 60px);display:flex;flex-direction:column;overflow:hidden}.pt{font-size:1.5rem;margin-bottom:20px;flex-shrink:0}
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;flex:1;overflow-y:auto;min-height:0}.ch{padding:14px 20px;border-bottom:1px solid #f1f5f9}.ch h3{font-size:1rem}.cb{padding:20px}
-table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.82rem;color:#1e293b;vertical-align:top}th{color:#94a3b8;font-weight:600;white-space:nowrap}code{font-size:.75rem;font-family:'Consolas',monospace;word-break:break-all;background:#f1f5f9;padding:2px 6px;border-radius:4px;vertical-align:middle}
+table{width:100%;border-collapse:collapse}th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.85rem;color:#1e293b;vertical-align:top}th{color:#94a3b8;font-weight:600;white-space:nowrap;font-size:.75rem}code{font-size:.75rem;font-family:'Consolas',monospace;word-break:break-all;background:#f1f5f9;padding:2px 6px;border-radius:4px;vertical-align:middle}
 .acts{display:flex;gap:4px;flex-wrap:wrap}.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.75rem;font-weight:600}.bs{background:#d1fae5;color:#065f46}.bd{background:#fee2e2;color:#991b1b}
 .cb{overflow-x:auto}
 .svc-count{color:#4f46e5;font-size:.82rem;font-weight:500;cursor:pointer;text-decoration:underline}.svc-count:hover{color:#3730a3}

@@ -73,8 +73,8 @@ async function loadServices() { try { const r = await get('/api/services'); serv
 table { width: 100%; border-collapse: collapse; min-width: 850px; }
 thead { position: sticky; top: 0; z-index: 1; }
 th { background: #fff; }
-th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: .82rem; color: #1e293b; }
-th { color: #94a3b8; font-weight: 600; font-size: .72rem; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: .85rem; color: #1e293b; }
+th { color: #94a3b8; font-weight: 600; font-size: .75rem; }
 .time { white-space: nowrap; color: #64748b; font-size: .8rem; }
 .path { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Consolas',monospace; }
 .key-cell { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; }
