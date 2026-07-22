@@ -126,7 +126,6 @@ router.get('/order-status', jwtAuth, async (req, res) => {
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
-router.use(jwtAuth);
 
 router.get('/tiers', async (req, res) => {
   try {
@@ -134,6 +133,10 @@ router.get('/tiers', async (req, res) => {
     res.json({ success: true, data: { tiers: tiers.map((t, i) => ({ index: i, name: t.name, monthlyFee: t.monthlyFee, description: t.description || '', features: t.features || [], onSale: t.onSale !== undefined ? t.onSale : true })) } });
   } catch (err) { res.status(500).json({ error: '获取套餐失败' }); }
 });
+
+// ==================== 以下接口需登录 ====================
+
+router.use(jwtAuth);
 
 router.get('/subscriptions', async (req, res) => {
   try {

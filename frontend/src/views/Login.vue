@@ -2,7 +2,7 @@
   <div class="page" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px);background:#f8fafc">
     <el-card class="login-card" shadow="hover">
       <h2 style="margin-bottom:4px">登录</h2><p style="color:#94a3b8;margin-bottom:24px;font-size:.9rem">访问API Pool控制台</p>
-      <el-form @submit.prevent="go" label-position="top">
+      <el-form @submit.prevent="go" @keyup.enter="go" label-position="top">
         <el-form-item label="用户名或邮箱">
           <el-input v-model="f.username" placeholder="请输入用户名或邮箱" clearable />
         </el-form-item>

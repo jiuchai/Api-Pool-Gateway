@@ -78,7 +78,7 @@ function toggleSvc(slug) {
 
 function maskKey(key) {
   if (!key || key.length <= 8) return '****'
-  return key.slice(0, 4) + '****' + key.slice(-4)
+  return key.slice(0, 4) + '*'.repeat(key.length - 8) + key.slice(-4)
 }
 function toggleKey(id) {
   visibleKeys.value = { ...visibleKeys.value, [id]: !visibleKeys.value[id] }
