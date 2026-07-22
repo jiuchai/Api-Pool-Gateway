@@ -4,7 +4,7 @@
     <div class="card">
       <div class="ch" style="display:flex;justify-content:space-between"><h3>密钥列表</h3><button class="btn btn-primary btn-sm" @click="showCreate=true">+ 创建</button></div>
       <div class="cb">
-        <table v-if="keys.length"><thead><tr><th>名称</th><th>密钥</th><th>已开通服务</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="k in keys" :key="k.id"><td>{{ k.name }}</td><td><code>{{ k.key }}</code> <button class="btn btn-sm btn-outline" @click="copy(k.key)">复制</button></td><td><span class="svc-count" @click="openServices(k)">{{ k.services?.length ? k.services.length + ' 个服务' : '全部服务' }}</span></td><td><span :class="['badge',k.disabled?'bd':'bs']">{{ k.disabled?'已禁用':'正常' }}</span></td><td class="acts"><button class="btn btn-sm btn-primary" @click="openServices(k)">开通服务</button><button class="btn btn-sm btn-success" @click="goTest(k.key)">测试</button><button class="btn btn-sm btn-outline" @click="exportSkill(k.key)">导出SKILL</button><button v-if="!k.disabled" class="btn btn-sm btn-outline" @click="disable(k.id)">禁用</button><button v-else class="btn btn-sm btn-outline" @click="enable(k.id)">启用</button><button class="btn btn-sm btn-warning" @click="regen(k.id)">重新生成</button><button class="btn btn-sm btn-danger" @click="remove(k.id)">删除</button></td></tr></tbody></table>
+        <table v-if="keys.length"><thead><tr><th>名称</th><th>密钥</th><th>已开通服务</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="k in keys" :key="k.id"><td>{{ k.name }}</td><td><code>{{ visibleKeys[k.id] ? k.key : maskKey(k.key) }}</code> <button class="btn btn-sm btn-icon" @click="toggleKey(k.id)" title="显示/隐藏"><span :class="{ 'eye-off': visibleKeys[k.id] }">👁</span></button> <button class="btn btn-sm btn-outline" @click="copy(k.key)">复制</button></td><td><span class="svc-count" @click="openServices(k)">{{ k.services?.length ? k.services.length + ' 个服务' : '全部服务' }}</span></td><td><span :class="['badge',k.disabled?'bd':'bs']">{{ k.disabled?'已禁用':'正常' }}</span></td><td class="acts"><button class="btn btn-sm btn-primary" @click="openServices(k)">开通服务</button><button class="btn btn-sm btn-success" @click="goTest(k.key)">测试</button><button class="btn btn-sm btn-outline" @click="exportSkill(k.key)">导出SKILL</button><button v-if="!k.disabled" class="btn btn-sm btn-outline" @click="disable(k.id)">禁用</button><button v-else class="btn btn-sm btn-outline" @click="enable(k.id)">启用</button><button class="btn btn-sm btn-warning" @click="regen(k.id)">重新生成</button><button class="btn btn-sm btn-danger" @click="remove(k.id)">删除</button></td></tr></tbody></table>
         <div v-else style="text-align:center;padding:30px;color:#94a3b8">暂无密钥</div>
       </div>
     </div>
@@ -44,6 +44,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'; import { get, post, put, del } from '@/api/client'; import { useToastStore } from '@/stores/toast'; import { useRouter } from 'vue-router'
 const toast = useToastStore(); const router = useRouter(); const keys = ref([]); const showCreate = ref(false); const newName = ref(''); const newKey = ref(null)
+const visibleKeys = ref({})
 const drawerVisible = ref(false)
 const allServices = ref([])
 const selectedServices = ref([])
@@ -73,6 +74,14 @@ function toggleSvc(slug) {
   const idx = selectedServices.value.indexOf(slug)
   if (idx >= 0) selectedServices.value.splice(idx, 1)
   else selectedServices.value.push(slug)
+}
+
+function maskKey(key) {
+  if (!key || key.length <= 8) return '****'
+  return key.slice(0, 4) + '****' + key.slice(-4)
+}
+function toggleKey(id) {
+  visibleKeys.value = { ...visibleKeys.value, [id]: !visibleKeys.value[id] }
 }
 
 async function load() { try { const r = await get('/api/keys'); keys.value = r.data.data } catch(e) { toast.error(e.message) } }
@@ -135,6 +144,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left
 .acts{display:flex;gap:4px;flex-wrap:wrap}.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.75rem;font-weight:600}.bs{background:#d1fae5;color:#065f46}.bd{background:#fee2e2;color:#991b1b}
 .cb{overflow-x:auto}
 .svc-count{color:#4f46e5;font-size:.82rem;font-weight:500;cursor:pointer;text-decoration:underline}.svc-count:hover{color:#3730a3}
+.btn-icon{background:none;border:none;cursor:pointer;font-size:.9rem;padding:0 2px;line-height:1;vertical-align:middle}.eye-off{position:relative;display:inline-block}.eye-off::after{content:'';position:absolute;left:-2px;right:-2px;top:50%;height:1.5px;background:currentColor;transform:rotate(-40deg);margin-top:-1px}
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}.modal-overlay.active{display:flex}
 .modal{background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.15);width:90%;max-width:500px}.mh{padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center}.mb{padding:20px}.mf{padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px}
 .fg{margin-bottom:14px}.fg label{display:block;margin-bottom:6px;font-weight:500;font-size:.875rem}.fc{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.875rem;background:#fff;color:#1e293b}
