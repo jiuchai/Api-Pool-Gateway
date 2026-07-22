@@ -103,10 +103,14 @@
 <script setup>
 // Copyright (c) 2026 jiucai.
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { get, post } from '@/api/client'
 import { useToastStore } from '@/stores/toast'
+import { useAuthStore } from '@/stores/auth'
 
 const toast = useToastStore()
+const router = useRouter()
+const auth = useAuthStore()
 const loading = ref(true)
 const tiers = ref([])
 const subscriptions = ref([])
@@ -116,15 +120,21 @@ const purchasing = ref(-1)
 
 async function loadData() {
   try {
-    const [tiersRes, subsRes, siteRes] = await Promise.all([
+    const [tiersRes, siteRes] = await Promise.all([
       get('/api/billing/tiers'),
-      get('/api/billing/subscriptions'),
       get('/api/site-info')
     ])
     tiers.value = tiersRes.data.data.tiers
-    subscriptions.value = subsRes.data.data
     paymentUrl.value = siteRes.data.data.paymentUrl || ''
     redeemPurchaseUrl.value = siteRes.data.data.redeemPurchaseUrl || ''
+
+    // 订阅信息仅登录用户加载，失败不影响页面展示
+    if (auth.isLoggedIn) {
+      try {
+        const subsRes = await get('/api/billing/subscriptions')
+        subscriptions.value = subsRes.data.data
+      } catch {}
+    }
   } catch (e) { toast.error('加载套餐失败') }
   finally { loading.value = false }
 }
@@ -138,6 +148,10 @@ function goRedeem() {
 }
 
 async function purchase(t) {
+  if (!auth.isLoggedIn) {
+    router.push({ name: 'Login', query: { redirect: '/plans' } })
+    return
+  }
   if (!paymentUrl.value) {
     toast.error('管理员未配置支付地址，无法购买')
     return

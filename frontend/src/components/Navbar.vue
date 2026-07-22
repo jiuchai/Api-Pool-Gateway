@@ -5,11 +5,11 @@
       <router-link to="/docs">文档</router-link>
       <router-link to="/tools">工具中心</router-link>
       <router-link to="/test" class="hl">⚡ 测试</router-link>
+      <router-link to="/plans">套餐</router-link>
       <template v-if="a.isLoggedIn">
         <router-link to="/dashboard">控制台</router-link>
         <router-link to="/settings">API Key</router-link>
         <router-link to="/logs">日志</router-link>
-        <router-link to="/plans">套餐</router-link>
         <router-link to="/redeem">兑换</router-link>
         <router-link to="/payment-history">支付记录</router-link>
       </template>

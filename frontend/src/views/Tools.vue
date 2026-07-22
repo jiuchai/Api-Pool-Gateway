@@ -38,15 +38,17 @@
           <div class="sk-line" style="width:40%;height:16px"></div>
           <div class="sk-line" style="width:50px;height:18px;border-radius:6px"></div>
         </div>
-        <div class="tool-desc">
-          <div class="sk-line" style="width:90%;height:12px;margin-bottom:6px"></div>
-          <div class="sk-line" style="width:60%;height:12px"></div>
+        <div class="tool-body">
+          <div class="tool-desc">
+            <div class="sk-line" style="width:90%;height:12px;margin-bottom:6px"></div>
+            <div class="sk-line" style="width:60%;height:12px"></div>
+          </div>
+          <div class="tool-endpoint">
+            <div class="sk-line" style="width:40px;height:18px;border-radius:4px;flex-shrink:0"></div>
+            <div class="sk-line" style="width:50%;height:14px"></div>
+          </div>
         </div>
-        <div class="tool-endpoint">
-          <div class="sk-line" style="width:40px;height:18px;border-radius:4px;flex-shrink:0"></div>
-          <div class="sk-line" style="width:50%;height:14px"></div>
-        </div>
-        <div class="tool-actions" style="display:flex;gap:8px">
+        <div class="tool-actions">
           <div class="sk-line" style="width:70px;height:28px;border-radius:6px"></div>
           <div class="sk-line" style="width:90px;height:28px;border-radius:6px"></div>
         </div>
@@ -59,10 +61,12 @@
           <h3>{{ tool.name }}</h3>
           <span class="tool-category">{{ tool.category }}</span>
         </div>
-        <p class="tool-desc">{{ tool.description }}</p>
-        <div class="tool-endpoint">
-          <span class="method-badge">POST</span>
-          <code>{{ tool.endpoint }}</code>
+        <div class="tool-body">
+          <p class="tool-desc">{{ tool.description }}</p>
+          <div class="tool-endpoint">
+            <span class="method-badge">POST</span>
+            <code>{{ tool.endpoint }}</code>
+          </div>
         </div>
         <div class="tool-actions">
           <router-link :to="'/test?service='+tool.slug" class="btn btn-secondary btn-sm">在线测试</router-link>
@@ -134,16 +138,17 @@ onMounted(async () => {
 .filter-input{flex:1;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:.875rem;outline:none}
 .filter-input:focus{border-color:#4f46e5}
 .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
-.tool-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;transition:all .2s}
+.tool-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;transition:all .2s;display:flex;flex-direction:column}
 .tool-card:hover{border-color:#4f46e5;box-shadow:0 4px 20px rgba(79,70,229,.1)}
-.tool-header{padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center}
+.tool-header{padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .tool-header h3{font-size:1rem;margin:0;color:#1e293b}
 .tool-category{font-size:.68rem;padding:3px 8px;border-radius:6px;background:#eef2ff;color:#4f46e5}
-.tool-desc{padding:12px 20px 0;margin:0;color:#64748b;font-size:.85rem;line-height:1.5}
+.tool-body{flex:1;display:flex;flex-direction:column}
+.tool-desc{padding:12px 20px 0;margin:0;color:#64748b;font-size:.85rem;line-height:1.5;flex:1}
 .tool-endpoint{padding:10px 20px;display:flex;align-items:center;gap:10px}
 .method-badge{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:4px;background:#dbeafe;color:#1e40af;flex-shrink:0}
 .tool-endpoint code{font-size:.8rem;font-family:'Consolas',monospace;color:#475569}
-.tool-actions{padding:12px 20px;background:#f8fafc;display:flex;gap:8px;border-top:1px solid #f1f5f9}
+.tool-actions{padding:12px 20px;background:#f8fafc;display:flex;gap:8px;border-top:1px solid #f1f5f9;flex-shrink:0}
 .btn{padding:6px 12px;border:none;border-radius:6px;font-size:.8rem;font-weight:500;cursor:pointer;text-decoration:none;transition:all .15s}
 .btn-primary{background:#4f46e5;color:#fff}
 .btn-primary:hover{background:#4338ca}
