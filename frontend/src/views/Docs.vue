@@ -46,6 +46,35 @@
           </div>
         </div>
 
+        <!-- 文件下载说明 -->
+        <div class="card auth-card" style="margin-bottom:24px">
+          <div class="cb">
+            <h3 style="margin-bottom:12px">文件下载 & 保存说明</h3>
+            <p style="color:#64748b;margin-bottom:12px">部分服务（如 PDF 转换、文字转语音等）的响应为文件类型，返回格式如下：</p>
+            <pre class="auth-pre" style="margin-bottom:12px"><code>{
+  "success": true,
+  "data": {
+    "type": "file",
+    "url": "{{ baseUrl }}/api/downloads/xxx.pdf",
+    "contentType": "application/pdf",
+    "size": 28416
+  }
+}</code></pre>
+            <table style="margin-bottom:12px">
+              <thead><tr><th>字段</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>data.type</code></td><td>固定为 <code>"file"</code>，表示响应为文件下载</td></tr>
+                <tr><td><code>data.url</code></td><td>文件下载地址，直接访问即可下载</td></tr>
+                <tr><td><code>data.contentType</code></td><td>文件的 MIME 类型</td></tr>
+                <tr><td><code>data.size</code></td><td>文件大小，单位字节（Bytes）</td></tr>
+              </tbody>
+            </table>
+            <div class="alert-file-info">
+              <strong>文件保存时长：30 分钟</strong>。生成的文件会在服务器上保留 <strong>30 分钟</strong>，超时后自动清理删除，请及时下载。
+            </div>
+          </div>
+        </div>
+
         <div v-if="loading" class="sk-content">
           <div class="sk-card" v-for="i in 2" :key="i">
             <div class="sk-line" style="width:30%;height:20px;margin-bottom:16px"></div>
@@ -149,6 +178,7 @@ code{font-family:'Consolas',monospace;font-size:.85rem}
 table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:.82rem}th{color:#94a3b8;font-weight:600}td code{background:#eef2ff;font-size:.8rem;padding:2px 6px;border-radius:4px}
 pre{background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;font-size:.82rem;line-height:1.6;max-height:300px;overflow-y:auto}
 pre code{font-family:'Consolas',monospace;background:none;padding:0;font-size:inherit}
+.alert-file-info{padding:12px 16px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:.85rem;color:#92400e}
 @media(max-width:768px){.docs-layout{flex-direction:column}.sidebar{width:100%;position:static;max-height:none}}
 .sk-nav{padding:4px 0}
 .sk-cat{height:16px;width:60px;border-radius:4px;margin:10px 0 6px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}

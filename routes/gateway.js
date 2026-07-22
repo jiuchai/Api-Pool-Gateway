@@ -47,7 +47,8 @@ router.post('/:slug', apiKeyAuth, createRateLimiter(), upload.any(), callLogger,
         }
       });
     }
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const proto = req.get('X-Forwarded-Proto') || req.protocol;
+    const baseUrl = `${proto}://${req.get('host')}`;
     const result = await gatewayService.executeService(req.params.slug, params, null, baseUrl, req);
     // 上游请求失败时不计数
     if (!result.success) {
